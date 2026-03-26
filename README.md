@@ -1,5 +1,5 @@
-# <center>Selge</center>
-![Centered Typing](https://readme-typing-svg.herokuapp.com?font=Inter&weight=600&size=26&duration=3000&pause=2000&color=000000&background=ffffff00&center=true&vCenter=true&width=650&height=40&line=Create+your+own+life.)
+<h1 align="center">Selge</h1>
+![Typing SVG](https://readme-typing-svg.herokuapp.com?font=Inter&weight=500&size=22&duration=3000&pause=1000&color=2ccce4&center=true&width=600&height=40&lines=Create+your+own+life.;Build+yourself,+not+just+play.;Selge+-+Forge+your+everyday.)
 
 ## What is Selge for?
 "Gaming is just a dopamine loop that traps people into wasting time. It hits hard, then it fades, leaving you stuck with nothing meaningful. I’ve seen it. You’re living it. Break the cycle, Morty. Rise above. Focus on building something that actually matters. SELF FORGE." –– Rick Sanchez
