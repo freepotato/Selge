@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Selge</title>
+<title>Selge - Forge your life</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%233d6b30'/%3E%3Cellipse cx='32' cy='36' rx='18' ry='12' fill='%235c8a4a'/%3E%3Cellipse cx='32' cy='36' rx='12' ry='8' fill='%23a8d5a2'/%3E%3Cpath d='M32 16 Q34 8 30 4 Q28 12 32 16Z' fill='%235c8a4a'/%3E%3Cpath d='M24 20 Q16 14 12 18 Q18 22 24 20Z' fill='%235c8a4a'/%3E%3Cpath d='M40 20 Q48 14 52 18 Q46 22 40 20Z' fill='%235c8a4a'/%3E%3Cpath d='M32 36 L32 16' stroke='%232a4d20' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M32 28 Q24 22 20 26' stroke='%232a4d20' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3Cpath d='M32 28 Q40 22 44 26' stroke='%232a4d20' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"/>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -33,7 +33,7 @@ a{color:inherit;text-decoration:none}
 .page.active{display:block}
 .page-title{font-family:'Noto Serif SC',serif;font-size:26px;font-weight:700;color:var(--t1);margin-bottom:4px}
 .page-sub{font-size:13px;color:var(--t3);margin-bottom:32px}
-.sec-label{font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);font-family:'JetBrains Mono',monospace;margin-bottom:12px}
+.sec-label{font-size:12px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);font-family:'JetBrains Mono',monospace;margin-bottom:12px}
 .card{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r);box-shadow:var(--sh)}
 .cp{padding:20px 24px}
 .btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;padding:8px 16px;border-radius:var(--r);transition:all .15s}
@@ -61,6 +61,9 @@ a{color:inherit;text-decoration:none}
 .dlg-title{font-family:'Noto Serif SC',serif;font-size:17px;font-weight:700;color:var(--t1);margin-bottom:8px}
 .dlg-body{font-size:14px;color:var(--t2);line-height:1.7;margin-bottom:20px}
 .dlg-actions{display:flex;gap:8px;justify-content:flex-end}
+.about-section{margin-bottom:20px}
+.about-section-title{font-size:12px;font-weight:600;color:var(--ac);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace}
+.about-section p{margin-bottom:8px;font-size:13px;line-height:1.6}
 .dlg-wide{max-width:560px}
 #toastWrap{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none}
 .toast{background:var(--t1);color:var(--bg);font-size:13px;font-weight:500;padding:10px 16px;border-radius:var(--r);display:flex;align-items:center;gap:8px;animation:toastIn .2s ease;max-width:280px;pointer-events:auto}
@@ -215,6 +218,9 @@ a{color:inherit;text-decoration:none}
 .mob-tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 10px;font-size:10px;color:var(--t3)}
 .mob-tab.active{color:var(--ac)}
 .mob-tab-icon{font-size:18px}
+footer{background:var(--bg2);border-top:1px solid var(--bd);padding:20px 24px;margin-top:40px;text-align:center;font-size:12px;color:var(--t3)}
+footer a{color:var(--ac);text-decoration:none;transition:opacity .2s}
+footer a:hover{opacity:.7}
 .coin-icon{display:inline-block;width:16px;height:16px;vertical-align:middle}
 .shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
 .shop-card{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r);padding:20px;text-align:center;transition:all .2s}
@@ -228,7 +234,7 @@ a{color:inherit;text-decoration:none}
 .shop-card.owned .shop-card-btn{opacity:.5;cursor:not-allowed}
 .char-coin-row{display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap}
 .coin-display{display:flex;align-items:center;gap:8px;background:var(--sur);border:1px solid var(--bd);border-radius:var(--r);padding:10px 16px;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:var(--t1)}
-.coin-display svg{width:20px;height:20px}
+.coin-display svg{width:16px;height:16px}
 @media(max-width:700px){.mob-nav{display:block}body{padding-bottom:60px}.nav-tabs{display:none}.nav-logo{font-size:15px;margin-right:12px}.nav-tab{font-size:12px;padding:0 8px}.wrap{padding:0 16px}.page{padding:24px 0 80px}.page-title{font-size:22px}.char-banner{min-height:120px;padding:20px 20px 16px}.char-banner .page-title{font-size:18px}.xp-lv-num{font-size:22px}.xp-section{margin-bottom:20px}.daily-quote{margin-bottom:20px;padding:14px 16px}.daily-quote-text{font-size:14px}.pinned-grid{grid-template-columns:repeat(2,1fr);gap:8px}.pinned-card{padding:10px 12px}.pinned-card-count{font-size:18px}.ach-grid{grid-template-columns:1fr}.ach-stats{grid-template-columns:repeat(2,1fr)}.shop-grid{grid-template-columns:1fr}.essay-layout{grid-template-columns:1fr}.essay-timeline{max-height:200px;overflow-y:auto;margin-bottom:16px}.adv-add-bar{flex-direction:column}.adv-add-bar .inp{width:100%!important}.mob-nav-inner{justify-content:space-around}.mob-tab{padding:4px 6px}.mob-tab-icon{font-size:16px}.mob-tab span:last-child{font-size:9px}.hm-range-btn{padding:2px 6px;font-size:10px}}
 @media(max-width:380px){.char-banner{padding:16px 14px;min-height:100px}.char-banner .page-title{font-size:16px}.lv-badge{font-size:10px;padding:2px 8px}.stat-cell-val,.ach-stat-val{font-size:20px}.pinned-grid{grid-template-columns:1fr 1fr}}
 .xp-float{position:fixed;font-size:14px;font-weight:700;color:var(--ac);font-family:'JetBrains Mono',monospace;pointer-events:none;z-index:9000;animation:xpFloat 1.4s ease forwards}
@@ -242,7 +248,7 @@ a{color:inherit;text-decoration:none}
 </head>
 <body>
 <nav class="nav"><div class="wrap nav-inner">
-<div class="nav-logo">Selge</div>
+<div class="nav-logo" id="navLogo" style="cursor:pointer">Selge</div>
 <div class="nav-tabs" id="navTabs">
 <button class="nav-tab active" data-page="character">角色</button>
 <button class="nav-tab" data-page="adventure">历险</button>
@@ -288,7 +294,7 @@ a{color:inherit;text-decoration:none}
 <div class="pinned-grid" id="pinnedGrid"></div>
 </div>
 <div class="mt24">
-<div class="fb mb16"><div class="sec-label">历险热力图</div><div class="hm-range-sel" id="hmRangeSel"><button class="hm-range-btn" data-weeks="4">1月</button><button class="hm-range-btn" data-weeks="13">3月</button><button class="hm-range-btn active" data-weeks="26">6月</button><button class="hm-range-btn" data-weeks="52">1年</button></div></div>
+<div class="fb mb16" style="align-items:center"><div class="sec-label">历险热力图</div><div class="hm-range-sel" id="hmRangeSel"><button class="hm-range-btn" data-weeks="4">1月</button><button class="hm-range-btn" data-weeks="13">3月</button><button class="hm-range-btn active" data-weeks="26">6月</button><button class="hm-range-btn" data-weeks="52">1年</button></div></div>
 <div class="card cp">
 <div class="heatmap-scroll"><div id="hmInner"></div></div>
 <div class="hm-legend"><span>少</span><div class="hm-lc" style="background:var(--h0)"></div><div class="hm-lc" style="background:var(--h1)"></div><div class="hm-lc" style="background:var(--h2)"></div><div class="hm-lc" style="background:var(--h3)"></div><div class="hm-lc" style="background:var(--h4)"></div><span>多</span></div>
@@ -364,7 +370,7 @@ a{color:inherit;text-decoration:none}
 <div class="div"></div>
 <div style="font-size:12px;color:var(--t3);margin-bottom:10px">添加新历险类型</div>
 <div class="at-add-row">
-<input class="inp inp-h" id="newTypeEmoji" placeholder="🎯" style="width:32px;text-align:center" maxlength="2"/>
+<input class="inp inp-h" id="newTypeEmoji" placeholder="🎯" style="width:28px;text-align:center" maxlength="2"/>
 <input class="inp inp-h" id="newTypeName" placeholder="类型名称" maxlength="12" style="flex:4;min-width:100px"/>
 <input class="inp inp-h" id="newTypeXpMin" type="number" placeholder="最小" min="1" style="width:48px;text-align:center"/>
 <input class="inp inp-h" id="newTypeXpMax" type="number" placeholder="最大" min="1" style="width:48px;text-align:center"/>
@@ -421,6 +427,7 @@ function updateStorageInfo(){const el=document.getElementById('storageInfo');if(
 function toast(msg,type,icon){const el=document.createElement('div');el.className='toast '+(type||'green');el.innerHTML=(icon?'<span>'+icon+'</span>':'')+'<span>'+esc(msg)+'</span>';document.getElementById('toastWrap').appendChild(el);setTimeout(function(){el.style.cssText='opacity:0;transform:translateY(6px)';setTimeout(function(){el.remove();},200);},2400);}
 function showDialog(opts){document.getElementById('dlgTitle').textContent=opts.title||'';document.getElementById('dlgBody').innerHTML=opts.body||'';const actEl=document.getElementById('dlgActions');actEl.innerHTML='';(opts.actions||[]).forEach(function(a){const btn=document.createElement('button');btn.className='btn btn-sm '+(a.cls||'btn-g');btn.textContent=a.label;btn.onclick=function(){closeDialog();if(a.fn)a.fn();};actEl.appendChild(btn);});document.getElementById('dlgBox').className='dlg'+(opts.wide?' dlg-wide':'');document.getElementById('dlgOverlay').classList.add('open');}
 function closeDialog(){document.getElementById('dlgOverlay').classList.remove('open');}
+function showAbout(){showDialog({title:'🌿 关于 Selge',body:'<div class="about-section"><div class="about-section-title">这是什么</div><p>Selge 是一个 Life RPG 网站，将人生的每一次经历游戏化。记录读书、电影、散步、指弹等历险，获得经验值和金币，用金币在商店兑换现实中的美好。</p></div><div class="about-section"><div class="about-section-title">为什么存在</div><p>为了避免陷入类似玩游戏这样的多巴胺上瘾行为，我们需要一个系统来充实和丰富人生。Selge 不是逃避，而是<strong>将现实本身游戏化</strong>——让每一次真实的经历都闪闪发光。</p></div><div class="about-section"><div class="about-section-title">意义</div><p>打破循环，锻造自己。每一次历险都是对自己的投资，每一个成就都是对生活的见证。在这里，你不是在玩游戏，你是在<strong>活出游戏</strong>。</p></div><div class="about-section"><div class="about-section-title">关于我</div><p>我是 Florian Chen，一个内心敏感、渴望美好、喜欢摇滚的射手座 INFP-T。我相信生活应该被精心设计，每一刻都值得被记录。</p></div><div class="about-section"><div class="about-section-title">联系方式</div><p>Email: <strong>FlorianChen9@outlook.com</strong><br>或在 <a href="https://github.com/freepotato/Selge" target="_blank" style="color:var(--ac);text-decoration:none">GitHub 仓库</a>提交 Issue</p></div>',actions:[{label:'继续历险',cls:'btn-p'}]});}
 function applyTheme(t){S.theme=t;const html=document.documentElement;if(t==='light')html.setAttribute('data-theme','light');else if(t==='dark')html.setAttribute('data-theme','dark');else html.setAttribute('data-theme',window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');const sel=document.getElementById('themeSelect');if(sel)sel.value=t;save();}
 function getLevelTitle(lv){if(lv>=100)return'不朽传说';if(lv>=80)return'传奇旅者';if(lv>=60)return'历险达人';if(lv>=40)return'身经百战';if(lv>=25)return'渐入佳境';if(lv>=15)return'初出茅庐';if(lv>=5)return'见习旅者';return'凡人';}
 function getLevel(xp){for(let i=100;i>=1;i--)if(xp>=XP_TABLE[i])return i;return 1;}
@@ -475,6 +482,7 @@ document.getElementById('themeSelect').addEventListener('change',function(){appl
 document.getElementById('quoteHistoryBtn').addEventListener('click',showQuoteHistory);
 document.getElementById('hmRangeSel').addEventListener('click',function(e){if(e.target.classList.contains('hm-range-btn')){document.querySelectorAll('.hm-range-btn').forEach(function(b){b.classList.remove('active');});e.target.classList.add('active');renderHeatmap(parseInt(e.target.dataset.weeks));}});
 document.getElementById('dlgOverlay').addEventListener('click',function(e){if(e.target.id==='dlgOverlay')closeDialog();});
+document.getElementById('navLogo').addEventListener('click',showAbout);
 function switchPage(name){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});document.getElementById('page-'+name).classList.add('active');document.querySelectorAll('.nav-tab, .mob-tab').forEach(function(t){t.classList.toggle('active',t.dataset.page===name);});if(name==='character')renderCharacter();if(name==='adventure')renderAdventure();if(name==='essays')renderEssays();if(name==='achievements')renderAchievements();if(name==='shop')renderShop();if(name==='settings')renderSettings();}
 // Initialize
 S=defaultState();
@@ -486,5 +494,8 @@ updateStorageInfo();
 checkAchievements();
 setInterval(save,30000);
 </script>
+<footer>
+© 2026 <a href="https://github.com/freepotato" target="_blank">Florian Chen</a>. Break the cycle. Forge your life.
+</footer>
 </body>
 </html>
