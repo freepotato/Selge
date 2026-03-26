@@ -8,7 +8,7 @@
 ![Cloudflare](https://img.shields.io/badge/-Cloudflare-F38020?logo=cloudflare)
 
 ## What is Selge for?
-"Gaming is just a dopamine loop that traps people into wasting time. It hits hard, then it fades, leaving you stuck with nothing meaningful. I’ve seen it. You’re living it. Break the cycle, Morty. Rise above. Focus on building something that actually matters. SELF FORGE." –– Rick Sanchez
+"Gaming is just a dopamine loop that traps people into wasting time. It hits hard, then it slowly fades, leaving you stuck with nothing meaningful. I’ve seen it. You’re living it. Break the cycle, Morty. Rise above. Focus on building something that actually matters. SELF FORGE." –– Rick Sanchez
 
 ## Why "Selge"?
 I've searched so many key words like "life rpg" or "craft the life", but they are all taken. I want something unique so I created this word by combing self with forge. SO, selge = forge yourself.
