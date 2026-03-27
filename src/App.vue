@@ -261,58 +261,173 @@ function showAbout() {
 
 async function exportZip() {
   const zip = new JSZip()
-  zip.file('selge-data.json', JSON.stringify({ hero: state.hero, advTypes: state.advTypes, adventures: state.adventures, essays: state.essays, unlockedAchievements: state.unlockedAchievements }, null, 2))
+  // JSON data
+  zip.file('selge-data.json', JSON.stringify({ 
+    hero: state.hero, 
+    advTypes: state.advTypes, 
+    adventures: state.adventures, 
+    essays: state.essays, 
+    unlockedAchievements: state.unlockedAchievements,
+    theme: state.theme
+  }, null, 2))
+  // Markdown files for essays
   const essaysFolder = zip.folder('essays')
   state.essays.filter(e => e.submitted).forEach(e => {
-    essaysFolder.file(`${e.date}-${(e.title || '无题').replace(/[\\/:*?"<>|]/g, '').substring(0, 30)}.md`, e.content || '')
+    const frontmatter = `---
+id: ${e.id}
+title: "${(e.title || '无题').replace(/"/g, '\\"')}"
+date: ${e.date}
+mood: ${e.mood}
+tags: ${JSON.stringify(e.tags || [])}
+---
+`
+    essaysFolder.file(`${e.date}-${(e.title || '无题').replace(/[\\/:*?"<>|]/g, '').substring(0, 30)}.md`, frontmatter + (e.content || ''))
   })
   const content = await zip.generateAsync({ type: 'blob' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(content)
   a.download = `selge-backup-${today()}.zip`
   a.click()
-  showToast('已导出 ZIP', 'green', '📦')
+  showToast('已导出 ZIP（含 JSON + 随笔）', 'green', '📦')
 }
 
 function exportJson() {
-  const blob = new Blob([JSON.stringify({ hero: state.hero, advTypes: state.advTypes, adventures: state.adventures, essays: state.essays, unlockedAchievements: state.unlockedAchievements }, null, 2)], { type: 'application/json' })
+  const data = { 
+    hero: state.hero, 
+    advTypes: state.advTypes, 
+    adventures: state.adventures, 
+    essays: state.essays, 
+    unlockedAchievements: state.unlockedAchievements,
+    theme: state.theme
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   a.download = `selge-${today()}.json`
   a.click()
-  showToast('已导出 JSON', 'green', '📦')
+  showToast('已导出 JSON', 'green', '📄')
+}
+
+function exportMarkdown() {
+  state.essays.filter(e => e.submitted).forEach(e => {
+    const frontmatter = `---
+id: ${e.id}
+title: "${(e.title || '无题').replace(/"/g, '\\"')}"
+date: ${e.date}
+mood: ${e.mood}
+tags: ${JSON.stringify(e.tags || [])}
+---
+`
+    const blob = new Blob([frontmatter + (e.content || '')], { type: 'text/markdown' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `${e.date}-${(e.title || '无题').replace(/[\\/:*?"<>|]/g, '').substring(0, 30)}.md`
+    a.click()
+  })
+  showToast(`已导出 ${state.essays.filter(e => e.submitted).length} 篇随笔`, 'green', '📝')
 }
 
 function triggerImport() {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = '.json,.zip,.md'
+  input.multiple = true
   input.onchange = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    const ext = file.name.split('.').pop().toLowerCase()
-    if (ext === 'json') {
-      const reader = new FileReader()
-      reader.onload = (ev) => {
-        try {
-          const p = JSON.parse(ev.target.result)
-          if (p.hero && p.adventures) {
-            Object.assign(state, p)
-            save()
-            showToast(`已导入 ${p.adventures?.length || 0} 条历险、${p.essays?.length || 0} 篇随笔`, 'green', '📥')
-          } else {
-            showToast('JSON 格式不正确', 'warn')
+    const files = Array.from(e.target.files)
+    if (!files.length) return
+    
+    for (const file of files) {
+      const ext = file.name.split('.').pop().toLowerCase()
+      
+      if (ext === 'json') {
+        const reader = new FileReader()
+        reader.onload = (ev) => {
+          try {
+            const p = JSON.parse(ev.target.result)
+            if (p.hero && p.adventures) {
+              // Merge data
+              if (p.hero) Object.assign(state.hero, p.hero)
+              if (p.advTypes) state.advTypes = p.advTypes
+              if (p.adventures) {
+                const existingIds = new Set(state.adventures.map(a => a.id))
+                const newAdvs = p.adventures.filter(a => !existingIds.has(a.id))
+                state.adventures = [...state.adventures, ...newAdvs]
+              }
+              if (p.essays) {
+                const existingEssays = new Set(state.essays.map(e => e.id))
+                const newEssays = p.essays.filter(e => !existingEssays.has(e.id))
+                state.essays = [...state.essays, ...newEssays]
+              }
+              if (p.unlockedAchievements) state.unlockedAchievements = [...new Set([...state.unlockedAchievements, ...p.unlockedAchievements])]
+              if (p.theme) state.theme = p.theme
+              save()
+              showToast(`已导入 ${newAdvs.length} 条历险、${newEssays.length} 篇随笔`, 'green', '📥')
+            } else {
+              showToast('JSON 格式不正确', 'warn')
+            }
+          } catch (err) {
+            showToast('JSON 解析失败', 'warn')
           }
-        } catch (err) {
-          showToast('JSON 解析失败', 'warn')
         }
+        reader.readAsText(file)
+      } else if (ext === 'md') {
+        const reader = new FileReader()
+        reader.onload = (ev) => {
+          try {
+            const content = ev.target.result
+            const parsed = parseMdFrontmatter(content)
+            if (parsed && parsed.id) {
+              const existing = state.essays.find(x => x.id === parsed.id)
+              if (existing) {
+                showToast('随笔已存在，跳过: ' + parsed.title, 'warn')
+              } else {
+                state.essays.push({
+                  id: parsed.id,
+                  title: parsed.title || '无题',
+                  date: parsed.date || today(),
+                  mood: parsed.mood || '😊',
+                  tags: parsed.tags || [],
+                  content: parsed.content || '',
+                  submitted: true,
+                  ts: Date.now()
+                })
+                save()
+                showToast('已导入随笔: ' + parsed.title, 'green', '📝')
+              }
+            } else {
+              showToast('MD 文件缺少 frontmatter', 'warn')
+            }
+          } catch (err) {
+            showToast('MD 文件解析失败', 'warn')
+          }
+        }
+        reader.readAsText(file)
       }
-      reader.readAsText(file)
-    } else {
-      showToast('暂只支持 JSON 导入', 'warn')
     }
   }
   input.click()
+}
+
+function parseMdFrontmatter(content) {
+  if (!content.startsWith('---')) return null
+  const endIdx = content.indexOf('---', 3)
+  if (endIdx === -1) return null
+  const frontStr = content.substring(3, endIdx).trim()
+  const body = content.substring(endIdx + 3).trim()
+  const meta = {}
+  frontStr.split('\n').forEach(line => {
+    const colonIdx = line.indexOf(':')
+    if (colonIdx !== -1) {
+      const key = line.substring(0, colonIdx).trim()
+      let val = line.substring(colonIdx + 1).trim()
+      if (val.startsWith('[') && val.endsWith(']')) {
+        try { val = JSON.parse(val) } catch (e) { val = [] }
+      }
+      meta[key] = val
+    }
+  })
+  meta.content = body
+  return meta
 }
 
 function clearData() {
@@ -456,12 +571,12 @@ function clearData() {
   <div class="page" :class="{ active: currentPage === 'adventure' }">
     <div class="wrap">
       <div class="mb24"><div class="page-title">历险记录</div><div class="page-sub">记录每一次出发</div></div>
-      <div class="adv-add-bar">
-        <input class="inp inp-h" v-model="newAdvTitle" placeholder="这次历险叫什么？" maxlength="60" style="flex:2;min-width:180px" @keydown.enter="addAdventure" />
-        <select class="inp" v-model="newAdvType" style="min-width:140px">
+      <div class="adv-add-bar" style="flex-wrap:nowrap">
+        <input class="inp inp-h" v-model="newAdvTitle" placeholder="这次历险叫什么？" maxlength="60" style="flex:1;min-width:120px" @keydown.enter="addAdventure" />
+        <select v-model="newAdvType" style="width:160px;flex-shrink:0">
           <option v-for="t in state.advTypes" :key="t.id" :value="t.id">{{ t.emoji }} {{ t.name }} (+{{ t.xpMin }}~{{ t.xpMax }})</option>
         </select>
-        <button class="btn btn-p" @click="addAdventure">记录</button>
+        <button class="btn btn-p" style="flex-shrink:0;white-space:nowrap" @click="addAdventure">记录</button>
       </div>
       <div class="card cp">
         <div style="padding-bottom:12px;border-bottom:1px solid var(--bd)"><span style="font-size:12px;color:var(--t3);font-family:monospace">{{ state.adventures.length }} 次</span></div>
@@ -577,7 +692,7 @@ function clearData() {
         <div class="card cp">
           <div class="set-sec-title">历险类型管理</div>
           <div style="font-size:12px;color:var(--t3);margin-bottom:12px">点击「展示」可将该类型固定到角色页面</div>
-          <div v-for="t in state.advTypes" :key="t.id" class="at-row"><span class="at-emoji">{{ t.emoji }}</span><span class="at-name">{{ t.name }}</span><span class="at-xp">+{{ t.xpMin }}~{{ t.xpMax }} XP</span><button class="at-pin" :class="{ on: t.pinned }" @click="togglePin(t.id)">{{ t.pinned ? '✓ 展示中' : '展示' }}</button></div>
+          <div v-for="t in state.advTypes" :key="t.id" class="at-row"><span class="at-emoji">{{ t.emoji }}</span><span class="at-name">{{ t.name }}</span><span class="at-xp" style="min-width:70px;text-align:right">+{{ t.xpMin }}~{{ t.xpMax }} XP</span><button class="at-pin" :class="{ on: t.pinned }" @click="togglePin(t.id)">{{ t.pinned ? '✓ 展示中' : '展示' }}</button></div>
           <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--bd)">
             <div style="font-size:12px;color:var(--t3);margin-bottom:10px">添加新历险类型</div>
             <div class="at-add-row">
@@ -592,15 +707,15 @@ function clearData() {
         <div class="card cp">
           <div class="set-sec-title">外观</div>
           <div class="set-row"><div style="min-width:80px"><div class="set-label">主题</div></div>
-            <select class="inp" v-model="state.theme" @change="applyTheme(state.theme)" style="width:auto;min-width:100px">
+            <select v-model="state.theme" @change="applyTheme(state.theme)" style="width:auto;min-width:100px">
               <option value="auto">自适应</option><option value="light">浅色</option><option value="dark">深色</option>
             </select>
           </div>
         </div>
         <div class="card cp">
           <div class="set-sec-title">数据</div>
-          <div class="set-row"><div><div class="set-label">导出备份</div><div class="set-desc">打包导出 ZIP（含 JSON + 随笔 MD）或单独导出 JSON</div></div><div style="display:flex;gap:6px"><button class="btn btn-g btn-sm" @click="exportZip">📦 ZIP</button><button class="btn btn-g btn-sm" @click="exportJson">JSON</button></div></div>
-          <div class="set-row"><div><div class="set-label">导入数据</div><div class="set-desc">支持 JSON 文件导入</div></div><button class="btn btn-g btn-sm" @click="triggerImport">导入</button></div>
+          <div class="set-row"><div><div class="set-label">导出备份</div><div class="set-desc">导出为 JSON / Markdown / ZIP</div></div><div style="display:flex;gap:6px"><button class="btn btn-g btn-sm" @click="exportJson">📄 JSON</button><button class="btn btn-g btn-sm" @click="exportMarkdown">📝 MD</button><button class="btn btn-g btn-sm" @click="exportZip">📦 ZIP</button></div></div>
+          <div class="set-row"><div><div class="set-label">导入数据</div><div class="set-desc">导入 JSON 文件或 Markdown 随笔</div></div><button class="btn btn-g btn-sm" @click="triggerImport">📥 导入</button></div>
           <div class="set-row"><div><div class="set-label">清除所有数据</div><div class="set-desc" style="color:#c0392b">不可撤销</div></div><button class="btn btn-sm" style="background:#c0392b;color:#fff" @click="clearData">清除</button></div>
         </div>
       </div>
