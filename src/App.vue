@@ -21,11 +21,19 @@ const newTypeEmoji = ref('')
 const newTypeName = ref('')
 const newTypeXpMin = ref('')
 const newTypeXpMax = ref('')
+const advTypeOpen = ref(false)
+const themeOpen = ref(false)
 
 onMounted(() => {
   load()
   applyTheme(state.theme)
   if (state.advTypes.length > 0) newAdvType.value = state.advTypes[0].id
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.custom-select')) {
+      advTypeOpen.value = false
+      themeOpen.value = false
+    }
+  })
 })
 
 function applyTheme(t) {
@@ -47,6 +55,31 @@ function toggleTheme() {
 }
 
 function switchPage(name) { currentPage.value = name }
+
+function toggleAdvTypeDropdown() { 
+  advTypeOpen.value = !advTypeOpen.value
+  themeOpen.value = false
+  if (advTypeOpen.value) {
+    setTimeout(() => {
+      const btn = document.querySelector('.adv-add-bar .custom-select-btn')
+      const menu = document.querySelector('.adv-add-bar .custom-select-menu')
+      if (btn && menu) menu.style.width = btn.offsetWidth + 'px'
+    }, 0)
+  }
+}
+function toggleThemeDropdown() { 
+  themeOpen.value = !themeOpen.value
+  advTypeOpen.value = false
+  if (themeOpen.value) {
+    setTimeout(() => {
+      const btn = document.querySelector('.set-row .custom-select-btn')
+      const menu = document.querySelector('.set-row .custom-select-menu')
+      if (btn && menu) menu.style.width = btn.offsetWidth + 'px'
+    }, 0)
+  }
+}
+function selectAdvType(id) { newAdvType.value = id; advTypeOpen.value = false }
+function selectTheme(t) { applyTheme(t); themeOpen.value = false }
 
 function showDialog(opts) {
   dialogTitle.value = opts.title || ''
@@ -253,8 +286,8 @@ function showAbout() {
 <p style="margin-bottom:16px">我是 Florian Chen，一个内心敏感、渴望美好、喜欢摇滚的射手座 INFP-T。我相信生活应该被精心设计，每一刻都值得被记录。</p>
 <hr style="border:none;border-top:1px solid var(--bd);margin:20px 0">
 <p style="font-size:13px;color:var(--t3)">联系方式</p>
-<p>Email: <a href="mailto:FlorianChen9@outlook.com" style="color:var(--ac);text-decoration:none">FlorianChen9@outlook.com</a></p>
-<p>GitHub: <a href="https://github.com/freepotato" target="_blank" style="color:var(--ac);text-decoration:none">https://github.com/freepotato</a></p></div>`,
+<p>Email: <a href="mailto:FlorianChen9@outlook.com">FlorianChen9@outlook.com</a></p>
+<p>GitHub: <a href="https://github.com/freepotato" target="_blank">https://github.com/freepotato</a></p></div>`,
     actions: [{ label: '继续历险', cls: 'btn-p' }]
   })
 }
@@ -496,19 +529,23 @@ function clearData() {
       </div>
 
       <div class="xp-section card cp">
-        <div class="xp-lv-inline">
-          <span class="xp-lv-num">Lv.{{ currentLevel }}</span>
-          <span class="xp-lv-text">{{ levelTitle }}</span>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <div class="xp-lv-inline">
+              <span class="xp-lv-num">Lv.{{ currentLevel }}</span>
+              <span class="xp-lv-text">{{ levelTitle }}</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:24px;text-align:center">
+            <div><div style="font-size:12px;color:var(--t3);margin-bottom:4px">💰 金币</div><div style="font-size:18px;font-weight:600;color:var(--ac)">{{ state.hero.coin.toLocaleString() }}</div></div>
+            <div><div style="font-size:12px;color:var(--t3);margin-bottom:4px">¥ 储蓄</div><div style="font-size:18px;font-weight:600;color:var(--t1)">{{ (state.hero.realMoney || 0).toLocaleString() }}</div></div>
+          </div>
         </div>
         <div class="xp-header">
           <span class="xp-label">经验值进度</span>
           <span class="xp-num">{{ state.hero.xp.toLocaleString() }} / {{ xpCeil.toLocaleString() }}</span>
         </div>
         <div class="xp-track"><div class="xp-fill" :style="{ width: xpProgress + '%' }"></div></div>
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;font-size:13px">
-          <div><span style="color:var(--t3)">金币</span><div style="font-size:16px;font-weight:600;color:var(--ac);margin-top:4px">{{ state.hero.coin.toLocaleString() }}</div></div>
-          <div><span style="color:var(--t3)">储蓄</span><div style="font-size:16px;font-weight:600;color:var(--t1);margin-top:4px">¥{{ (state.hero.realMoney || 0).toLocaleString() }}</div></div>
-        </div>
       </div>
 
       <div v-if="pinnedTypes.length" class="mt24">
@@ -571,11 +608,18 @@ function clearData() {
   <div class="page" :class="{ active: currentPage === 'adventure' }">
     <div class="wrap">
       <div class="mb24"><div class="page-title">历险记录</div><div class="page-sub">记录每一次出发</div></div>
-      <div class="adv-add-bar" style="flex-wrap:nowrap">
+      <div class="adv-add-bar" style="flex-wrap:nowrap;gap:8px">
         <input class="inp inp-h" v-model="newAdvTitle" placeholder="这次历险叫什么？" maxlength="60" style="flex:1;min-width:120px" @keydown.enter="addAdventure" />
-        <select v-model="newAdvType" style="width:160px;flex-shrink:0">
-          <option v-for="t in state.advTypes" :key="t.id" :value="t.id">{{ t.emoji }} {{ t.name }} (+{{ t.xpMin }}~{{ t.xpMax }})</option>
-        </select>
+        <div class="custom-select" style="flex-shrink:0;width:180px">
+          <button class="custom-select-btn" :class="{ open: advTypeOpen }" @click="toggleAdvTypeDropdown" style="width:100%">
+            <span style="overflow:hidden;text-overflow:ellipsis">{{ state.advTypes.find(t => t.id === newAdvType)?.emoji }} {{ state.advTypes.find(t => t.id === newAdvType)?.name }} (+{{ state.advTypes.find(t => t.id === newAdvType)?.xpMin }}-{{ state.advTypes.find(t => t.id === newAdvType)?.xpMax }})</span>
+          </button>
+          <div class="custom-select-menu" :class="{ open: advTypeOpen }">
+            <div v-for="t in state.advTypes" :key="t.id" class="custom-select-item" :class="{ selected: newAdvType === t.id }" @click="selectAdvType(t.id)">
+              {{ t.emoji }} {{ t.name }} (+{{ t.xpMin }}-{{ t.xpMax }})
+            </div>
+          </div>
+        </div>
         <button class="btn btn-p" style="flex-shrink:0;white-space:nowrap" @click="addAdventure">记录</button>
       </div>
       <div class="card cp">
@@ -707,9 +751,16 @@ function clearData() {
         <div class="card cp">
           <div class="set-sec-title">外观</div>
           <div class="set-row"><div style="min-width:80px"><div class="set-label">主题</div></div>
-            <select v-model="state.theme" @change="applyTheme(state.theme)" style="width:auto;min-width:100px">
-              <option value="auto">自适应</option><option value="light">浅色</option><option value="dark">深色</option>
-            </select>
+            <div class="custom-select" style="width:100px;margin-left:auto">
+              <button class="custom-select-btn" :class="{ open: themeOpen }" @click="toggleThemeDropdown" style="width:100%">
+                <span>{{ { auto: '自适应', light: '浅色', dark: '深色' }[state.theme] }}</span>
+              </button>
+              <div class="custom-select-menu" :class="{ open: themeOpen }">
+                <div class="custom-select-item" :class="{ selected: state.theme === 'auto' }" @click="selectTheme('auto')">自适应</div>
+                <div class="custom-select-item" :class="{ selected: state.theme === 'light' }" @click="selectTheme('light')">浅色</div>
+                <div class="custom-select-item" :class="{ selected: state.theme === 'dark' }" @click="selectTheme('dark')">深色</div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="card cp">
