@@ -3,7 +3,7 @@ export async function onRequestGet(context) {
   const userEmail = context.request.headers.get('cf-access-authenticated-user-email')
   
   if (!userEmail) {
-    // 返回 HTML 页面，Cloudflare Access 会拦截并显示登录页
+    // 未登录，返回 HTML 页面，Cloudflare Access 会拦截并显示登录页
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -34,11 +34,13 @@ export async function onRequestGet(context) {
     })
   }
   
-  // 已登录，立即重定向回首页
-  return new Response(null, {
-    status: 302,
+  // 已登录，返回 JSON 响应，让前端检查并重定向
+  return new Response(JSON.stringify({ 
+    authenticated: true, 
+    email: userEmail 
+  }), {
     headers: { 
-      'Location': '/',
+      'Content-Type': 'application/json',
       'Cache-Control': 'no-cache, no-store, must-revalidate'
     }
   })

@@ -57,6 +57,23 @@ function logout() {
 
 // 页面加载时检查是否从登录返回
 onMounted(async () => {
+  // 检查是否在 /api/me 页面且已登录
+  if (window.location.pathname === '/api/me') {
+    try {
+      const res = await fetch('/api/me')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.authenticated) {
+          // 已登录，重定向回主页
+          window.location.href = '/'
+          return
+        }
+      }
+    } catch (e) {
+      console.error('检查登录状态失败:', e)
+    }
+  }
+  
   // 获取用户信息
   try {
     const me = await getMe()
