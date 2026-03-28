@@ -18,6 +18,7 @@ const dialogActions = ref([])
 const toasts = ref([])
 const heatmapWeeks = ref(26)
 const currentEssay = ref(null)
+const essayTagInput = ref('')
 const achFilter = ref('all')
 const newAdvTitle = ref('')
 const newAdvType = ref('at1')
@@ -28,6 +29,32 @@ const newTypeXpMax = ref('')
 const advTypeOpen = ref(false)
 const themeOpen = ref(false)
 
+function login() {
+  // 访问受 Cloudflare Access 保护的 API
+  // Access 会自动拦截并显示登录页
+  // 登录成功后会重定向回这个页面
+  window.location.href = '/api/me'
+}
+
+function showLogoutConfirm() {
+  showDialog({
+    title: '退出登录',
+    body: '确定要退出登录吗？',
+    actions: [
+      { label: '取消', cls: 'btn-g' },
+      { label: '确定退出', cls: 'btn-dg', fn: () => {
+        logout()
+      }}
+    ]
+  })
+}
+
+function logout() {
+  // 访问 Cloudflare Access 的登出端点
+  window.location.href = '/cdn-cgi/access/logout'
+}
+
+// 页面加载时检查是否从登录返回
 onMounted(async () => {
   // 获取用户信息
   try {
@@ -73,12 +100,6 @@ function toggleTheme() {
   }
 }
 
-function login() {
-  // 访问受 Cloudflare Access 保护的 API
-  // Access 会自动拦截并显示登录页
-  window.location.href = '/api/me'
-}
-
 function switchPage(name) { currentPage.value = name }
 
 function toggleAdvTypeDropdown() { 
@@ -122,6 +143,7 @@ function showToast(msg, type = 'green', icon = '') {
 }
 
 const currentLevel = computed(() => getLevel(state.hero.xp))
+const coinDisplay = computed(() => COIN_SVG + ' <span style="margin-left:6px"><strong>' + state.hero.coin.toLocaleString() + '</strong></span>')
 const levelTitle = computed(() => getLevelTitle(currentLevel.value))
 const xpProgress = computed(() => {
   const lvl = currentLevel.value
@@ -242,7 +264,26 @@ function newEssay() {
   autoSave()
 }
 
-function openEssay(essay) { currentEssay.value = essay }
+function openEssay(essay) { 
+  currentEssay.value = essay
+  essayTagInput.value = ''
+}
+
+function addEssayTag() {
+  const tag = essayTagInput.value.trim()
+  if (!tag) return
+  if (!currentEssay.value.tags) currentEssay.value.tags = []
+  if (!currentEssay.value.tags.includes(tag)) {
+    currentEssay.value.tags.push(tag)
+    autoSave()
+  }
+  essayTagInput.value = ''
+}
+
+function removeEssayTag(index) {
+  currentEssay.value.tags.splice(index, 1)
+  autoSave()
+}
 
 function deleteEssay() {
   showDialog({
@@ -272,10 +313,12 @@ function submitEssay() {
       { label: '确定提交', cls: 'btn-p', fn: () => {
         currentEssay.value.submitted = true
         currentEssay.value.title = currentEssay.value.title || '无题'
-        state.hero.xp += XP_ESSAY
-        state.hero.coin += XP_ESSAY
+        // 根据字数计算经验：1字1经验，上限1000
+        const wordCount = currentEssay.value.content.length
+        const xpGain = Math.min(wordCount, 1000)
+        state.hero.xp += xpGain
         autoSave()
-        showToast(`随笔已提交 +${XP_ESSAY} XP`, 'green', '📝')
+        showToast(`随笔已提交 +${xpGain} XP`, 'green', '📝')
       }}
     ]
   })
@@ -305,14 +348,15 @@ function showAbout() {
   showDialog({
     title: '🌿 关于 Selge',
     body: `<div style="font-size:12px;line-height:1.9;color:var(--t2)">
-<p style="margin-bottom:16px">Selge 是一个 Life RPG 网站，将人生的每一次经历游戏化。记录读书、电影、散步、指弹等历险，获得经验值和金币，用金币在商店兑换现实中的美好。</p>
-<p style="margin-bottom:16px">为了避免陷入类似玩游戏这样的多巴胺上瘾行为，我们需要一个系统来充实和丰富人生。Selge 不是逃避，而是<strong style="color:var(--t1)">将现实本身游戏化</strong>——让每一次真实的经历都闪闪发光。</p>
-<p style="margin-bottom:16px">打破循环，锻造自己。每一次历险都是对自己的投资，每一个成就都是对生活的见证。在这里，你不是在玩游戏，你是在<strong style="color:var(--t1)">活出游戏</strong>。</p>
-<p style="margin-bottom:16px">我是 Florian Chen，一个内心敏感、渴望美好、喜欢摇滚的射手座 INFP-T。我相信生活应该被精心设计，每一刻都值得被记录。</p>
+<p style="margin-bottom:16px">有一天我像往常一样闲来无事打开游戏，玩了一会儿之后突然觉得内心无比空虚。我想，我不能再这样了。</p>
+<p style="margin-bottom:16px">我搜索了大量的资料，发现这可以归纳为一种简单而确定的模式：我们花费很少的精力，就能获取很大的满足，它是一个安全而且确定的奖励机制。但是这个奖励机制只能让我们沉迷于对我们的人生并无裨益的事情中，所以，我开始尝试创建一套属于我的人生的奖励机制。</p>
+<p style="margin-bottom:16px">通过跟AI反复辩论，我明白了我要做的东西：一个Life RPG模拟器。幸运的是，网上已经有类似的产品，可惜不幸的是，它们要么没有我想要的功能，要么收费极贵（Youtube上几十万播放的一个notion life rpg模板，基础版就要收费69美刀）。于是，Selge应运而生：一个基于Cloudflare Pages搭建的开源Life RPG模拟器。</p>
+<p style="margin-bottom:16px">过去无数个瞬间我都在想，假如我的人生是个游戏就好了，我猜你也这么想过。现在，不再想象，让我们付诸实践吧——路，就在脚下。</p>
 <hr style="border:none;border-top:1px solid var(--bd);margin:20px 0">
-<p style="font-size:12px;color:var(--t3)">联系方式</p>
+<p style="font-size:12px;color:var(--t3)">Contact me:</p>
 <p>Email: <a href="mailto:FlorianChen9@outlook.com">FlorianChen9@outlook.com</a></p>
-<p>GitHub: <a href="https://github.com/freepotato" target="_blank">https://github.com/freepotato</a></p></div>`,
+<p style="font-size:12px;color:var(--t3)">Find this repo at:</p>
+<p>GitHub: <a href="https://github.com/freepotato/selge" target="_blank">https://github.com/freepotato/selge</a></p></div>`,
     actions: [{ label: '继续历险', cls: 'btn-p' }]
   })
 }
@@ -574,8 +618,8 @@ function clearData() {
         <button class="nav-tab" :class="{ active: currentPage === 'settings' }" @click="switchPage('settings')">设置</button>
       </div>
       <div class="nav-right">
-        <span v-if="user.authenticated" class="user-badge">{{ user.username }}</span>
-        <button v-else class="btn btn-sm" @click="login">登录</button>
+        <button v-if="user.authenticated" class="user-btn" @click="showLogoutConfirm">{{ user.username }}</button>
+        <button v-else class="btn btn-p btn-sm" @click="login">🔐 登录</button>
         <button class="theme-btn" @click="toggleTheme">🌓</button>
       </div>
     </div>
@@ -744,6 +788,18 @@ function clearData() {
           <div v-else class="card cp">
             <input class="essay-title-inp" v-model="currentEssay.title" placeholder="标题…" maxlength="60" @input="autoSave" />
             <div style="margin:12px 0 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:12px;color:var(--t3)">心情</span><div class="mood-row"><button v-for="m in MOODS" :key="m" class="mood-btn" :class="{ on: currentEssay.mood === m }" @click="currentEssay.mood = m; autoSave()">{{ m }}</button></div></div>
+            <div style="margin:12px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-size:12px;color:var(--t3)">标签</span>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1">
+                <input v-model="essayTagInput" @keydown.enter="addEssayTag" placeholder="输入标签后按Enter" style="font-size:12px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;background:var(--sur);color:var(--t1);flex:1;min-width:100px" />
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <span v-for="(tag, i) in currentEssay.tags" :key="i" class="essay-tag">
+                    {{ tag }}
+                    <button @click="removeEssayTag(i)" style="background:none;border:none;color:inherit;cursor:pointer;margin-left:4px;font-size:11px">✕</button>
+                  </span>
+                </div>
+              </div>
+            </div>
             <textarea class="essay-ta" v-model="currentEssay.content" placeholder="支持 Markdown 语法…" @input="autoSave"></textarea>
             <div class="fb" style="margin-top:10px"><span style="font-size:11px;color:var(--t4);font-family:monospace">{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字 · 提交后不可修改</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" @click="deleteEssay">删除草稿</button><button class="btn btn-p btn-sm" @click="submitEssay">提交随笔</button></div></div>
           </div>
@@ -784,7 +840,7 @@ function clearData() {
   <div class="page" :class="{ active: currentPage === 'shop' }">
     <div class="wrap">
       <div class="mb24"><div class="page-title">商店</div><div class="page-sub">用金币换取现实中的美好</div></div>
-      <div class="char-coin-row"><div class="coin-display"><span>{{ state.hero.coin.toLocaleString() }}</span><span>金币</span></div><div style="font-size:12px;color:var(--t3)">每获得 1 XP 可获得 1 金币</div></div>
+      <div class="char-coin-row"><div class="coin-display" v-html="coinDisplay"></div><div style="font-size:12px;color:var(--t3)">每获得 1 XP 可获得 1 金币</div></div>
       <div class="shop-grid">
         <div v-for="item in COIN_ITEMS" :key="item.id" class="shop-card" :class="{ owned: state.hero.purchasedItems?.includes(item.id) }">
           <div class="shop-card-icon">{{ item.icon }}</div><div class="shop-card-name">{{ item.name }}</div><div class="shop-card-real">现实价值 {{ item.realValue }}</div>
@@ -853,7 +909,7 @@ function clearData() {
           <div class="set-sec-title">数据</div>
           <div class="set-row"><div><div class="set-label">导出备份</div><div class="set-desc">导出为 JSON / Markdown / ZIP</div></div><div style="display:flex;gap:6px"><button class="btn btn-g btn-sm" @click="exportJson">📄 JSON</button><button class="btn btn-g btn-sm" @click="exportMarkdown">📝 MD</button><button class="btn btn-g btn-sm" @click="exportZip">📦 ZIP</button></div></div>
           <div class="set-row"><div><div class="set-label">导入数据</div><div class="set-desc">导入 JSON 文件或 Markdown 随笔</div></div><button class="btn btn-g btn-sm" @click="triggerImport">📥 导入</button></div>
-          <div class="set-row"><div><div class="set-label">清除所有数据</div><div class="set-desc" style="color:#c0392b">不可撤销</div></div><button class="btn btn-sm" style="background:#c0392b;color:#fff" @click="clearData">清除</button></div>
+          <div class="set-row"><div><div class="set-label">清除所有数据</div><div class="set-desc" style="color:#c0392b">不可撤销</div></div><button class="btn btn-sm btn-danger" @click="clearData">永久清除</button></div>
         </div>
       </div>
     </div>
