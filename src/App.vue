@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { marked } from 'marked'
 import JSZip from 'jszip'
 import { useStore } from './stores/store.js'
+import { checkLocalDirStatus, syncWithSavedDir, pickAndSyncDir, clearLocalDir, getDefaultPathHint } from './utils/localData.js'
 
 const { state, XP_TABLE, XP_ESSAY, MOODS, ACHIEVEMENTS, COIN_SVG, COIN_ITEMS, DAILY_QUOTES, load, save, uid, today, fmtDate, randInt, getLevel, getLevelTitle, getAdvCounts, esc } = useStore()
 
@@ -23,11 +24,38 @@ const newTypeXpMin = ref('')
 const newTypeXpMax = ref('')
 const advTypeOpen = ref(false)
 const themeOpen = ref(false)
+const syncBanner = ref(null) // null | 'prompt' | 'first-time'
+const syncPathHint = ref('')
+const localDirBound = ref(false) // 是否已绑定本地目录
 
-onMounted(() => {
+onMounted(async () => {
   load()
   applyTheme(state.theme)
   if (state.advTypes.length > 0) newAdvType.value = state.advTypes[0].id
+
+  // 每次启动检查本地数据目录状态
+  try {
+    syncPathHint.value = getDefaultPathHint()
+    const bannerDismissed = localStorage.getItem('selge_banner_dismissed') === '1'
+    const status = await checkLocalDirStatus()
+    if (status === 'granted') {
+      localDirBound.value = true
+      const data = await syncWithSavedDir()
+      if (data.jsonData || data.essays?.length > 0) {
+        await importLocalData(data)
+        showToast('已同步本地数据', 'green', '✓')
+      }
+    } else if (status === 'prompt') {
+      localDirBound.value = true
+      if (!bannerDismissed) syncBanner.value = 'prompt'
+    } else if (status === 'none') {
+      localDirBound.value = false
+      if (!bannerDismissed) syncBanner.value = 'first-time'
+    }
+  } catch (e) {
+    console.log('本地数据检查失败:', e.message)
+  }
+
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.custom-select')) {
       advTypeOpen.value = false
@@ -80,6 +108,62 @@ function toggleThemeDropdown() {
 }
 function selectAdvType(id) { newAdvType.value = id; advTypeOpen.value = false }
 function selectTheme(t) { applyTheme(t); themeOpen.value = false }
+
+async function importLocalData(data) {
+  try {
+    if (data.jsonData) {
+      Object.assign(state, data.jsonData)
+    }
+    if (data.essays && data.essays.length > 0) {
+      const existingIds = new Set(state.essays.map(e => e.id))
+      const newEssays = data.essays.filter(e => !existingIds.has(e.id))
+      state.essays.push(...newEssays)
+    }
+    save()
+  } catch (e) {
+    console.error('导入本地数据失败:', e)
+    showToast('导入失败', 'warn', '✗')
+  }
+}
+
+function dismissBanner() {
+  syncBanner.value = null
+  localStorage.setItem('selge_banner_dismissed', '1')
+}
+
+async function doSyncLocal() {
+  try {
+    const data = await syncWithSavedDir()
+    await importLocalData(data)
+    syncBanner.value = null
+    showToast('本地数据同步成功', 'green', '✓')
+  } catch (e) {
+    syncBanner.value = null
+    if (e.message !== 'permission-denied') showToast('同步失败：' + e.message, 'warn', '✗')
+  }
+}
+
+async function doPickDir() {
+  try {
+    const data = await pickAndSyncDir()
+    await importLocalData(data)
+    localDirBound.value = true
+    syncBanner.value = null
+    localStorage.removeItem('selge_banner_dismissed') // 绑定成功后重置
+    showToast('已绑定目录并同步数据', 'green', '✓')
+  } catch (e) {
+    // 用户取消选择，不关闭 banner，不显示错误
+    if (e.name !== 'AbortError') showToast('选择失败：' + e.message, 'warn', '✗')
+  }
+}
+
+async function doUnbindDir() {
+  await clearLocalDir()
+  localDirBound.value = false
+  syncBanner.value = null
+  localStorage.removeItem('selge_banner_dismissed')
+  showToast('已解除本地目录绑定', 'green', '✓')
+}
 
 function showDialog(opts) {
   dialogTitle.value = opts.title || ''
@@ -279,13 +363,13 @@ function togglePin(typeId) {
 function showAbout() {
   showDialog({
     title: '🌿 关于 Selge',
-    body: `<div style="font-size:15px;line-height:1.9;color:var(--t2)">
+    body: `<div style="font-size:12px;line-height:1.9;color:var(--t2)">
 <p style="margin-bottom:16px">Selge 是一个 Life RPG 网站，将人生的每一次经历游戏化。记录读书、电影、散步、指弹等历险，获得经验值和金币，用金币在商店兑换现实中的美好。</p>
 <p style="margin-bottom:16px">为了避免陷入类似玩游戏这样的多巴胺上瘾行为，我们需要一个系统来充实和丰富人生。Selge 不是逃避，而是<strong style="color:var(--t1)">将现实本身游戏化</strong>——让每一次真实的经历都闪闪发光。</p>
 <p style="margin-bottom:16px">打破循环，锻造自己。每一次历险都是对自己的投资，每一个成就都是对生活的见证。在这里，你不是在玩游戏，你是在<strong style="color:var(--t1)">活出游戏</strong>。</p>
 <p style="margin-bottom:16px">我是 Florian Chen，一个内心敏感、渴望美好、喜欢摇滚的射手座 INFP-T。我相信生活应该被精心设计，每一刻都值得被记录。</p>
 <hr style="border:none;border-top:1px solid var(--bd);margin:20px 0">
-<p style="font-size:13px;color:var(--t3)">联系方式</p>
+<p style="font-size:12px;color:var(--t3)">联系方式</p>
 <p>Email: <a href="mailto:FlorianChen9@outlook.com">FlorianChen9@outlook.com</a></p>
 <p>GitHub: <a href="https://github.com/freepotato" target="_blank">https://github.com/freepotato</a></p></div>`,
     actions: [{ label: '继续历险', cls: 'btn-p' }]
@@ -509,6 +593,24 @@ function clearData() {
     </div>
   </div>
 
+  <!-- 本地数据同步提示条 -->
+  <div v-if="syncBanner" class="sync-banner">
+    <div class="sync-banner-inner wrap">
+      <span v-if="syncBanner === 'prompt'" class="sync-banner-text">
+        📂 检测到本地数据目录，点击同步
+      </span>
+      <span v-else class="sync-banner-text">
+        💾 选择本地数据目录以启用自动同步 →
+        <span class="sync-path-hint">{{ syncPathHint }}</span>
+      </span>
+      <div class="sync-banner-actions">
+        <button v-if="syncBanner === 'prompt'" class="btn btn-p btn-sm" @click="doSyncLocal">同步</button>
+        <button v-else class="btn btn-p btn-sm" @click="doPickDir">选择目录</button>
+        <button class="sync-banner-dismiss" @click="dismissBanner">✕</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Character Page -->
   <div class="page" :class="{ active: currentPage === 'character' }">
     <div class="wrap">
@@ -523,7 +625,7 @@ function clearData() {
       </div>
 
       <div class="daily-quote card cp">
-        <div class="daily-quote-text">"{{ dailyQuote }}"</div>
+        <div class="daily-quote-text">「{{ dailyQuote }}」</div>
         <div class="daily-quote-date">每日一句 · {{ today() }}</div>
         <div class="daily-quote-link" @click="showQuoteHistory">查看往期</div>
       </div>
@@ -536,9 +638,15 @@ function clearData() {
               <span class="xp-lv-text">{{ levelTitle }}</span>
             </div>
           </div>
-          <div style="display:flex;gap:24px;text-align:center">
-            <div><div style="font-size:12px;color:var(--t3);margin-bottom:4px">💰 金币</div><div style="font-size:18px;font-weight:600;color:var(--ac)">{{ state.hero.coin.toLocaleString() }}</div></div>
-            <div><div style="font-size:12px;color:var(--t3);margin-bottom:4px">¥ 储蓄</div><div style="font-size:18px;font-weight:600;color:var(--t1)">{{ (state.hero.realMoney || 0).toLocaleString() }}</div></div>
+          <div style="display:flex;gap:32px;text-align:right;padding-left:8px">
+            <div>
+              <div style="font-size:12px;color:var(--t3);margin-bottom:2px;margin-left:4px;">金币</div>
+              <div style="display:flex;align-items:center;gap:2px;font-size:18px;font-weight:600;color:var(--t1);margin-left:-4px"><span v-html="COIN_SVG" style="display:inline-flex;vertical-align:middle;width:14px;height:14px"></span>{{ state.hero.coin.toLocaleString() }}</div>
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--t3);margin-bottom:2px;">储蓄</div>
+              <div style="display:flex;align-items:center;justify-content:flex-start;gap:2px;font-size:18px;font-weight:600;color:var(--t1)"><span style="color:#d4a017;font-size:16px;font-weight:bold">¥</span>{{ (state.hero.realMoney || 0).toLocaleString() }}</div>
+            </div>
           </div>
         </div>
         <div class="xp-header">
@@ -580,7 +688,7 @@ function clearData() {
                   <div class="hm-wd"></div><div class="hm-wd">一</div><div class="hm-wd"></div><div class="hm-wd">三</div><div class="hm-wd"></div><div class="hm-wd">五</div><div class="hm-wd"></div>
                 </div>
                 <div v-for="(col, i) in heatmapData.cols" :key="i" class="hm-col">
-                  <div v-for="(d, j) in col" :key="j" class="hm-cell" :data-l="heatmapData.lv(heatmapData.countMap[d.toISOString().slice(0, 10)] || 0)" :style="{ opacity: d > heatmapData.todayD ? 0.3 : 1 }"></div>
+                  <div v-for="(d, j) in col" :key="j" class="hm-cell" :data-l="heatmapData.lv(heatmapData.countMap[d.toISOString().slice(0, 10)] || 0)" :data-tip="(heatmapData.countMap[d.toISOString().slice(0, 10)] || 0) + ' 次历险 · ' + d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })" :style="{ opacity: d > heatmapData.todayD ? 0.3 : 1 }"></div>
                 </div>
               </div>
             </div>
@@ -679,6 +787,7 @@ function clearData() {
       </div>
       <div class="ach-tabs">
         <button class="ach-tab" :class="{ active: achFilter === 'all' }" @click="achFilter = 'all'">全部</button>
+        <button class="ach-tab" :class="{ active: achFilter === 'adventure' }" @click="achFilter = 'adventure'">历险</button>
         <button class="ach-tab" :class="{ active: achFilter === 'read' }" @click="achFilter = 'read'">读书</button>
         <button class="ach-tab" :class="{ active: achFilter === 'movie' }" @click="achFilter = 'movie'">电影</button>
         <button class="ach-tab" :class="{ active: achFilter === 'guitar' }" @click="achFilter = 'guitar'">指弹</button>
@@ -767,6 +876,17 @@ function clearData() {
           <div class="set-sec-title">数据</div>
           <div class="set-row"><div><div class="set-label">导出备份</div><div class="set-desc">导出为 JSON / Markdown / ZIP</div></div><div style="display:flex;gap:6px"><button class="btn btn-g btn-sm" @click="exportJson">📄 JSON</button><button class="btn btn-g btn-sm" @click="exportMarkdown">📝 MD</button><button class="btn btn-g btn-sm" @click="exportZip">📦 ZIP</button></div></div>
           <div class="set-row"><div><div class="set-label">导入数据</div><div class="set-desc">导入 JSON 文件或 Markdown 随笔</div></div><button class="btn btn-g btn-sm" @click="triggerImport">📥 导入</button></div>
+          <div class="set-row">
+            <div>
+              <div class="set-label">本地数据同步</div>
+              <div class="set-desc">{{ localDirBound ? syncPathHint : '暂未设置本地目录' }}</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-g btn-sm" @click="doPickDir">📁 {{ localDirBound ? '更换目录' : '选择目录' }}</button>
+              <button v-if="localDirBound" class="btn btn-g btn-sm" @click="doSyncLocal">↻ 立即同步</button>
+              <button v-if="localDirBound" class="btn btn-sm" style="color:var(--t3);border:1px solid var(--bd)" @click="doUnbindDir">解除</button>
+            </div>
+          </div>
           <div class="set-row"><div><div class="set-label">清除所有数据</div><div class="set-desc" style="color:#c0392b">不可撤销</div></div><button class="btn btn-sm" style="background:#c0392b;color:#fff" @click="clearData">清除</button></div>
         </div>
       </div>
@@ -793,4 +913,5 @@ function clearData() {
 
 <style>
 .btn-dg { background: #c0392b !important; color: #fff !important; }
+.shop-card-btn {justify-content: center; align-items: center; }
 </style>
