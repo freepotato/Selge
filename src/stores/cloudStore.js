@@ -12,7 +12,7 @@ for (let i = 0; i <= 10; i++) {
   XP_TABLE[i] = i === 0 ? 0 : Math.round(500 * i * i)
 }
 
-const LV_TITLES = ['凡人', '见习旅者', '初出茅庐', '渐入佳境', '身经百战', '历险达人', '传奇旅者', '不朽传说', '传奇', '至尊']
+const LV_TITLES = ['致徒', '致者', '致师', '大致师', '致灵', '致宗', '致尊', '致王', '致皇', '致圣']
 const MOODS = ['😊', '😌', '😔', '😤', '🤔', '😴', '🎉', '💪']
 
 const ACHIEVEMENTS = {
@@ -132,16 +132,16 @@ function getLevel(xp) {
 }
 
 function getLevelTitle(lv) {
-  if (lv >= 10) return '至尊'
-  if (lv >= 9) return '传奇'
-  if (lv >= 8) return '不朽传说'
-  if (lv >= 7) return '传奇旅者'
-  if (lv >= 6) return '历险达人'
-  if (lv >= 5) return '身经百战'
-  if (lv >= 4) return '渐入佳境'
-  if (lv >= 3) return '初出茅庐'
-  if (lv >= 2) return '见习旅者'
-  return '凡人'
+  if (lv >= 10) return '致圣'
+  if (lv >= 9) return '致皇'
+  if (lv >= 8) return '致王'
+  if (lv >= 7) return '致尊'
+  if (lv >= 6) return '致宗'
+  if (lv >= 5) return '致灵'
+  if (lv >= 4) return '大致师'
+  if (lv >= 3) return '致师'
+  if (lv >= 2) return '致者'
+  return '致徒'
 }
 
 function getAdvCounts(state) {

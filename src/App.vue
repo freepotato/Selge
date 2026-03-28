@@ -11,6 +11,7 @@ const { state, XP_TABLE, XP_ESSAY, MOODS, ACHIEVEMENTS, COIN_SVG, COIN_ITEMS, DA
 const user = ref({ authenticated: false, username: 'Guest' })
 
 const currentPage = ref('character')
+const mobileMenuOpen = ref(false)
 const dialogOpen = ref(false)
 const dialogTitle = ref('')
 const dialogBody = ref('')
@@ -608,6 +609,7 @@ function clearData() {
 <template>
   <nav class="nav">
     <div class="wrap nav-inner">
+      <button class="mob-menu-btn" @click="mobileMenuOpen = !mobileMenuOpen">☰</button>
       <div class="nav-logo" @click="showAbout">Selge</div>
       <div class="nav-tabs">
         <button class="nav-tab" :class="{ active: currentPage === 'character' }" @click="switchPage('character')">角色</button>
@@ -625,6 +627,23 @@ function clearData() {
     </div>
   </nav>
 
+  <!-- 移动版侧边菜单 -->
+  <div v-if="mobileMenuOpen" class="mob-menu-overlay" @click="mobileMenuOpen = false"></div>
+  <div class="mob-menu" :class="{ open: mobileMenuOpen }">
+    <div class="mob-menu-header">
+      <div class="mob-menu-title">菜单</div>
+      <button class="mob-menu-close" @click="mobileMenuOpen = false">✕</button>
+    </div>
+    <div class="mob-menu-items">
+      <button class="mob-menu-item" :class="{ active: currentPage === 'character' }" @click="switchPage('character'); mobileMenuOpen = false">角色</button>
+      <button class="mob-menu-item" :class="{ active: currentPage === 'adventure' }" @click="switchPage('adventure'); mobileMenuOpen = false">历险</button>
+      <button class="mob-menu-item" :class="{ active: currentPage === 'essays' }" @click="switchPage('essays'); mobileMenuOpen = false">随笔</button>
+      <button class="mob-menu-item" :class="{ active: currentPage === 'achievements' }" @click="switchPage('achievements'); mobileMenuOpen = false">成就</button>
+      <button class="mob-menu-item" :class="{ active: currentPage === 'shop' }" @click="switchPage('shop'); mobileMenuOpen = false">商店</button>
+      <button class="mob-menu-item" :class="{ active: currentPage === 'settings' }" @click="switchPage('settings'); mobileMenuOpen = false">设置</button>
+    </div>
+  </div>
+
   <div id="toastWrap">
     <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">
       <span v-if="t.icon">{{ t.icon }}</span>
@@ -639,16 +658,8 @@ function clearData() {
         <img v-if="state.hero.bannerImg" class="char-banner-img" :src="state.hero.bannerImg" />
         <div class="char-banner-overlay"></div>
         <div class="char-banner-content">
-          <div class="page-title">{{ state.hero.name }}</div>
-          <div class="lv-badge">Lv.{{ currentLevel }}</div>
-          <div class="page-sub">正在书写自己的故事</div>
+          <div class="daily-quote-text" style="font-size:16px;line-height:1.6">「{{ dailyQuote }}」</div>
         </div>
-      </div>
-
-      <div class="daily-quote card cp">
-        <div class="daily-quote-text">「{{ dailyQuote }}」</div>
-        <div class="daily-quote-date">每日一句 · {{ today() }}</div>
-        <div class="daily-quote-link" @click="showQuoteHistory">查看往期</div>
       </div>
 
       <div class="xp-section card cp">
@@ -840,7 +851,7 @@ function clearData() {
   <div class="page" :class="{ active: currentPage === 'shop' }">
     <div class="wrap">
       <div class="mb24"><div class="page-title">商店</div><div class="page-sub">用金币换取现实中的美好</div></div>
-      <div class="char-coin-row"><div class="coin-display" v-html="coinDisplay"></div><div style="font-size:12px;color:var(--t3)">每获得 1 XP 可获得 1 金币</div></div>
+      <div class="char-coin-row"><div class="coin-display" v-html="coinDisplay"></div><div style="font-size:12px;color:var(--t3)">每获得 1 XP 可获得 1 金币，随笔产生的 XP 除外。</div></div>
       <div class="shop-grid">
         <div v-for="item in COIN_ITEMS" :key="item.id" class="shop-card" :class="{ owned: state.hero.purchasedItems?.includes(item.id) }">
           <div class="shop-card-icon">{{ item.icon }}</div><div class="shop-card-name">{{ item.name }}</div><div class="shop-card-real">现实价值 {{ item.realValue }}</div>
@@ -871,9 +882,8 @@ function clearData() {
       <div style="max-width:600px;display:flex;flex-direction:column;gap:20px">
         <div class="card cp">
           <div class="set-sec-title">个人信息</div>
-          <div class="set-row"><div><div class="set-label">名字</div><div class="set-desc">显示在角色页面</div></div><input class="inp" v-model="state.hero.name" style="width:180px" maxlength="20" /></div>
           <div class="set-row"><div><div class="set-label">储蓄</div><div class="set-desc">当前拥有的现实资金</div></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--t3)">¥</span><input class="inp" type="number" v-model.number="state.hero.realMoney" style="width:100px" min="0" placeholder="0" /></div></div>
-          <div class="mt16"><button class="btn btn-p btn-sm" @click="saveProfile">保存</button></div>
+          <div class="mt16" style="display:flex;justify-content:flex-end"><button class="btn btn-p btn-sm" @click="saveProfile">保存</button></div>
         </div>
         <div class="card cp">
           <div class="set-sec-title">历险类型管理</div>
