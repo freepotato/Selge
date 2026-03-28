@@ -74,8 +74,9 @@ function toggleTheme() {
 }
 
 function login() {
-  // 跳转到受 Cloudflare Access 保护的登录入口
-  window.location.href = '/api/login'
+  // 访问受 Cloudflare Access 保护的 API
+  // Access 会自动拦截并显示登录页
+  window.location.href = '/api/me'
 }
 
 function switchPage(name) { currentPage.value = name }
