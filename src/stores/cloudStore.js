@@ -63,10 +63,10 @@ const COIN_SVG = '<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" st
 
 const COIN_ITEMS = [
   { id: 'm_ticket', icon: '🎟️', name: '电影票', price: 100, realValue: '约¥35', desc: '看一场电影' },
-  { id: 's_shoes', icon: '👟', name: '新鞋子', price: 750, realValue: '约¥300', desc: '走更远的路' },
-  { id: 'jacket', icon: '🧥', name: '新外套', price: 500, realValue: '约¥200', desc: '风里更从容' },
   { id: 'pants', icon: '👖', name: '新裤子', price: 250, realValue: '约¥100', desc: '踏出每一步' },
-  { id: 'redpack', icon: '🧧', name: '100元红包', price: 300, realValue: '¥100', desc: '现实的奖励' }
+  { id: 'redpack', icon: '🧧', name: '100元红包', price: 300, realValue: '¥100', desc: '放心地花吧' },
+  { id: 'jacket', icon: '🧥', name: '新外套', price: 500, realValue: '约¥200', desc: '风里更从容' },
+  { id: 's_shoes', icon: '👟', name: '新鞋子', price: 750, realValue: '约¥300', desc: '走更远的路' }
 ]
 
 const DAILY_QUOTES = [
@@ -94,10 +94,10 @@ function defaultState() {
       bannerImg: null
     },
     advTypes: [
-      { id: 'at1', emoji: '📚', name: '读书', xpMin: 30, xpMax: 40, pinned: true },
-      { id: 'at2', emoji: '🎬', name: '电影', xpMin: 5, xpMax: 8, pinned: true },
-      { id: 'at3', emoji: '🚶', name: '散步', xpMin: 3, xpMax: 5, pinned: true },
-      { id: 'at4', emoji: '🎸', name: '指弹', xpMin: 100, xpMax: 120, pinned: true }
+      { id: 'at1', emoji: '📚', name: '读书', xpMin: 30, xpMax: 40, pinned: false },
+      { id: 'at2', emoji: '🎬', name: '电影', xpMin: 5, xpMax: 8, pinned: false },
+      { id: 'at3', emoji: '🚶', name: '散步', xpMin: 3, xpMax: 5, pinned: false },
+      { id: 'at4', emoji: '🎸', name: '指弹', xpMin: 100, xpMax: 120, pinned: false }
     ],
     adventures: [],
     essays: [],
@@ -190,7 +190,18 @@ async function load() {
       state.hero.realMoney = result.data.hero?.realMoney || 0
       state.hero.purchasedItems = result.data.hero?.purchasedItems || []
       state.hero.purchaseHistory = result.data.hero?.purchaseHistory || []
-      state.advTypes = result.data.advTypes || defaultState().advTypes
+      
+      // 合并 advTypes，保留默认的 pinned 状态
+      if (result.data.advTypes && result.data.advTypes.length > 0) {
+        const defaultTypes = defaultState().advTypes
+        state.advTypes = result.data.advTypes.map(t => ({
+          ...t,
+          pinned: t.pinned !== undefined ? t.pinned : defaultTypes.find(dt => dt.id === t.id)?.pinned ?? false
+        }))
+      } else {
+        state.advTypes = defaultState().advTypes
+      }
+      
       state.adventures = result.data.adventures || []
       state.essays = result.data.essays || []
       state.unlockedAchievements = result.data.unlockedAchievements || []

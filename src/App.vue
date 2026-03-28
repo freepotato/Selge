@@ -93,12 +93,16 @@ function applyTheme(t) {
 }
 
 function toggleTheme() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-  if (state.theme === 'auto') applyTheme(isDark ? 'light' : 'dark')
-  else {
-    const map = { light: 'dark', dark: 'auto' }
-    applyTheme(map[state.theme] || 'auto')
+  // 在 light 和 dark 之间切换
+  // 如果当前是 auto，先转换为当前实际的主题，再切换
+  let currentTheme = state.theme
+  if (currentTheme === 'auto') {
+    // 获取当前实际显示的主题
+    currentTheme = document.documentElement.getAttribute('data-theme')
   }
+  // 在 light 和 dark 之间切换
+  const nextTheme = currentTheme === 'dark' ? 'light' : 'dark'
+  applyTheme(nextTheme)
 }
 
 function switchPage(name) { currentPage.value = name }
@@ -145,6 +149,13 @@ function showToast(msg, type = 'green', icon = '') {
 
 const currentLevel = computed(() => getLevel(state.hero.xp))
 const coinDisplay = computed(() => COIN_SVG + ' <span style="margin-left:6px"><strong>' + state.hero.coin.toLocaleString() + '</strong></span>')
+const sortedAchievements = computed(() => {
+  const allAchs = [...ACHIEVEMENTS.read, ...ACHIEVEMENTS.movie, ...ACHIEVEMENTS.guitar, ...ACHIEVEMENTS.walk, ...ACHIEVEMENTS.total]
+  // 已解锁的在前，按 id 排序（最新的在前）
+  const unlocked = allAchs.filter(a => state.unlockedAchievements.includes(a.id)).reverse()
+  const locked = allAchs.filter(a => !state.unlockedAchievements.includes(a.id))
+  return [...unlocked, ...locked]
+})
 const levelTitle = computed(() => getLevelTitle(currentLevel.value))
 const xpProgress = computed(() => {
   const lvl = currentLevel.value
@@ -838,7 +849,7 @@ function clearData() {
         <button class="ach-tab" :class="{ active: achFilter === 'walk' }" @click="achFilter = 'walk'">散步</button>
       </div>
       <div class="ach-grid">
-        <div v-for="a in (achFilter === 'all' ? [...ACHIEVEMENTS.read, ...ACHIEVEMENTS.movie, ...ACHIEVEMENTS.guitar, ...ACHIEVEMENTS.walk, ...ACHIEVEMENTS.total] : ACHIEVEMENTS[achFilter] || [])" :key="a.id" class="ach-card" :class="{ unlocked: state.unlockedAchievements.includes(a.id), locked: !state.unlockedAchievements.includes(a.id) }">
+        <div v-for="a in (achFilter === 'all' ? sortedAchievements : ACHIEVEMENTS[achFilter] || [])" :key="a.id" class="ach-card" :class="{ unlocked: state.unlockedAchievements.includes(a.id), locked: !state.unlockedAchievements.includes(a.id) }">
           <div class="ach-shine"></div><div class="ach-icon">{{ a.icon }}</div><div class="ach-name">{{ a.name }}</div><div class="ach-desc">{{ a.desc }}</div>
           <div class="ach-progress"><div class="ach-progress-bar"><div class="ach-progress-fill" :style="{ width: Math.min(100, ((a.id.startsWith('r') ? getAdvCounts(state).read : a.id.startsWith('m') ? getAdvCounts(state).movie : a.id.startsWith('g') ? getAdvCounts(state).guitar : a.id.startsWith('w') ? getAdvCounts(state).walk : state.adventures.length) || 0) / a.req * 100) + '%' }"></div></div><div class="ach-progress-text">{{ (a.id.startsWith('r') ? getAdvCounts(state).read : a.id.startsWith('m') ? getAdvCounts(state).movie : a.id.startsWith('g') ? getAdvCounts(state).guitar : a.id.startsWith('w') ? getAdvCounts(state).walk : state.adventures.length) || 0 }}/{{ a.req }}</div></div>
           <div v-if="state.unlockedAchievements.includes(a.id)" class="ach-unlock-date">✓ 已解锁</div>
