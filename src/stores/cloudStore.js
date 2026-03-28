@@ -157,26 +157,21 @@ function getAdvCounts(state) {
 
 const state = reactive(defaultState())
 
-let saveTimeout = null
-
-// Debounced save to cloud (1 second delay)
+// 立即保存到云端（用户操作时调用）
 function autoSave() {
-  if (saveTimeout) clearTimeout(saveTimeout)
-  saveTimeout = setTimeout(async () => {
-    try {
-      await saveData('default', {
-        hero: state.hero,
-        advTypes: state.advTypes,
-        adventures: state.adventures,
-        essays: state.essays,
-        unlockedAchievements: state.unlockedAchievements,
-        theme: state.theme
-      })
-      console.log('Auto-saved to cloud')
-    } catch (e) {
-      console.error('Auto-save failed:', e)
-    }
-  }, 1000)
+  try {
+    saveData('default', {
+      hero: state.hero,
+      advTypes: state.advTypes,
+      adventures: state.adventures,
+      essays: state.essays,
+      unlockedAchievements: state.unlockedAchievements,
+      theme: state.theme
+    })
+    console.log('Saved to cloud')
+  } catch (e) {
+    console.error('Save to cloud failed:', e)
+  }
 }
 
 // Load from cloud

@@ -645,7 +645,7 @@ function clearData() {
         <button class="nav-tab" :class="{ active: currentPage === 'settings' }" @click="switchPage('settings')">设置</button>
       </div>
       <div class="nav-right">
-        <button v-if="user.authenticated" class="user-btn" @click="showLogoutConfirm">{{ user.username }}</button>
+        <button v-if="user.authenticated" class="user-btn" @click="showLogoutConfirm">{{ state.hero.name || user.username }}</button>
         <button v-else class="btn btn-p btn-sm" @click="login">🔐 登录</button>
         <button class="theme-btn" @click="toggleTheme">🌓</button>
       </div>
@@ -822,7 +822,7 @@ function clearData() {
             <div class="md-body" v-html="marked.parse(currentEssay.content || '')"></div>
           </div>
           <div v-else class="card cp">
-            <input class="essay-title-inp" v-model="currentEssay.title" placeholder="标题…" maxlength="60" @input="autoSave" />
+            <input class="essay-title-inp" v-model="currentEssay.title" placeholder="标题…" maxlength="60" @blur="autoSave" />
             <div style="margin:12px 0 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:12px;color:var(--t3)">心情</span><div class="mood-row"><button v-for="m in MOODS" :key="m" class="mood-btn" :class="{ on: currentEssay.mood === m }" @click="currentEssay.mood = m; autoSave()">{{ m }}</button></div></div>
             <div style="margin:12px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <span style="font-size:12px;color:var(--t3)">标签</span>
@@ -836,7 +836,7 @@ function clearData() {
                 </div>
               </div>
             </div>
-            <textarea class="essay-ta" v-model="currentEssay.content" placeholder="支持 Markdown 语法…" @input="autoSave"></textarea>
+            <textarea class="essay-ta" v-model="currentEssay.content" placeholder="支持 Markdown 语法…" @blur="autoSave"></textarea>
             <div class="fb" style="margin-top:10px"><span style="font-size:11px;color:var(--t4);font-family:monospace">{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字 · 提交后不可修改</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" @click="deleteEssay">删除草稿</button><button class="btn btn-p btn-sm" @click="submitEssay">提交随笔</button></div></div>
           </div>
         </div>
@@ -907,8 +907,8 @@ function clearData() {
       <div style="max-width:600px;display:flex;flex-direction:column;gap:20px">
         <div class="card cp">
           <div class="set-sec-title">个人信息</div>
-          <div class="set-row"><div><div class="set-label">储蓄</div><div class="set-desc">当前拥有的现实资金</div></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--t3)">¥</span><input class="inp" type="number" v-model.number="state.hero.realMoney" style="width:100px" min="0" placeholder="0" /></div></div>
-          <div class="mt16" style="display:flex;justify-content:flex-end"><button class="btn btn-p btn-sm" @click="saveProfile">保存</button></div>
+          <div class="set-row"><div><div class="set-label">角色名</div><div class="set-desc">显示在账户按钮中</div></div><input class="inp" v-model="state.hero.name" style="width:180px" maxlength="20" @blur="autoSave" /></div>
+          <div class="set-row"><div><div class="set-label">储蓄</div><div class="set-desc">当前拥有的现实资金</div></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--t3)">¥</span><input class="inp" type="number" v-model.number="state.hero.realMoney" style="width:100px" min="0" placeholder="0" @blur="autoSave" /></div></div>
         </div>
         <div class="card cp">
           <div class="set-sec-title">历险类型管理</div>
