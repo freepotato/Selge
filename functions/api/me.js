@@ -34,13 +34,11 @@ export async function onRequestGet(context) {
     })
   }
   
-  // 已登录，返回 JSON 响应，让前端检查并重定向
-  return new Response(JSON.stringify({ 
-    authenticated: true, 
-    email: userEmail 
-  }), {
+  // 已登录，直接返回 302 重定向到首页
+  return new Response(null, {
+    status: 302,
     headers: { 
-      'Content-Type': 'application/json',
+      'Location': '/',
       'Cache-Control': 'no-cache, no-store, must-revalidate'
     }
   })
