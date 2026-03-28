@@ -73,6 +73,11 @@ function toggleTheme() {
   }
 }
 
+function login() {
+  // 触发 Cloudflare Access 登录，跳转到 /api/me 会自动重定向到登录页
+  window.location.href = '/api/me'
+}
+
 function switchPage(name) { currentPage.value = name }
 
 function toggleAdvTypeDropdown() { 
@@ -568,7 +573,8 @@ function clearData() {
         <button class="nav-tab" :class="{ active: currentPage === 'settings' }" @click="switchPage('settings')">设置</button>
       </div>
       <div class="nav-right">
-        <span class="user-badge">{{ user.authenticated ? user.username : 'Guest' }}</span>
+        <span v-if="user.authenticated" class="user-badge">{{ user.username }}</span>
+        <button v-else class="btn btn-sm" @click="login">登录</button>
         <button class="theme-btn" @click="toggleTheme">🌓</button>
       </div>
     </div>

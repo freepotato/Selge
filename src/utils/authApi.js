@@ -24,8 +24,6 @@ export async function saveData(id, content) {
     body: JSON.stringify({ id, content })
   })
   if (res.status === 401) {
-    // 触发 Cloudflare Access 登录
-    window.location.reload()
     return { error: 'Unauthorized' }
   }
   if (!res.ok) {
@@ -39,7 +37,6 @@ export async function saveData(id, content) {
 export async function loadData(id) {
   const res = await fetch(`${API_BASE}/load?id=${encodeURIComponent(id)}`)
   if (res.status === 401) {
-    window.location.reload()
     return { error: 'Unauthorized' }
   }
   if (res.status === 404) {
@@ -63,7 +60,6 @@ export async function uploadImage(file, id = 'default') {
     body: formData
   })
   if (res.status === 401) {
-    window.location.reload()
     return { error: 'Unauthorized' }
   }
   if (!res.ok) {
