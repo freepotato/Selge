@@ -61,7 +61,7 @@ function applyTheme(t) {
   if (t === 'light') html.setAttribute('data-theme', 'light')
   else if (t === 'dark') html.setAttribute('data-theme', 'dark')
   else html.setAttribute('data-theme', window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-  save()
+  autoSave()
 }
 
 function toggleTheme() {
@@ -74,8 +74,8 @@ function toggleTheme() {
 }
 
 function login() {
-  // 触发 Cloudflare Access 登录，跳转到 /api/me 会自动重定向到登录页
-  window.location.href = '/api/me'
+  // 跳转到受 Cloudflare Access 保护的登录入口
+  window.location.href = '/api/login'
 }
 
 function switchPage(name) { currentPage.value = name }
@@ -168,7 +168,7 @@ function addAdventure() {
     state.hero.lastAdvDate = tDate
   }
   newAdvTitle.value = ''
-  save()
+  autoSave()
   showToast(`${t?.emoji || '⚔️'} 历险已记录！+${xp} XP`, 'green')
   checkAchievements()
 }
@@ -227,7 +227,7 @@ function buyItem(item) {
         state.hero.purchasedItems.push(item.id)
         if (!state.hero.purchaseHistory) state.hero.purchaseHistory = []
         state.hero.purchaseHistory.unshift({ icon: item.icon, name: item.name, price: item.price, date: fmtDate(today()) })
-        save()
+        autoSave()
         showToast(`恭喜获得 ${item.name}！`, 'green', item.icon)
       }}
     ]
@@ -238,7 +238,7 @@ function newEssay() {
   const id = uid()
   state.essays.unshift({ id, title: '', content: '', mood: '😊', date: today(), ts: Date.now(), submitted: false, tags: [] })
   currentEssay.value = state.essays[0]
-  save()
+  autoSave()
 }
 
 function openEssay(essay) { currentEssay.value = essay }
@@ -252,7 +252,7 @@ function deleteEssay() {
       { label: '删除', cls: 'btn-dg', fn: () => {
         state.essays = state.essays.filter(e => e.id !== currentEssay.value.id)
         currentEssay.value = null
-        save()
+        autoSave()
       }}
     ]
   })
@@ -273,7 +273,7 @@ function submitEssay() {
         currentEssay.value.title = currentEssay.value.title || '无题'
         state.hero.xp += XP_ESSAY
         state.hero.coin += XP_ESSAY
-        save()
+        autoSave()
         showToast(`随笔已提交 +${XP_ESSAY} XP`, 'green', '📝')
       }}
     ]
@@ -291,13 +291,13 @@ function addAdvType() {
   if (xpMin > xpMax) { showToast('最小XP不能大于最大XP', 'warn'); return }
   state.advTypes.push({ id: uid(), emoji, name, xpMin, xpMax, pinned: false })
   newTypeEmoji.value = ''; newTypeName.value = ''; newTypeXpMin.value = ''; newTypeXpMax.value = ''
-  save()
+  autoSave()
   showToast('已添加历险类型', 'green')
 }
 
 function togglePin(typeId) {
   const t = state.advTypes.find(x => x.id === typeId)
-  if (t) { t.pinned = !t.pinned; save() }
+  if (t) { t.pinned = !t.pinned; autoSave() }
 }
 
 function showAbout() {
@@ -417,7 +417,7 @@ function triggerImport() {
               }
               if (p.unlockedAchievements) state.unlockedAchievements = [...new Set([...state.unlockedAchievements, ...p.unlockedAchievements])]
               if (p.theme) state.theme = p.theme
-              save()
+              autoSave()
               showToast(`已导入 ${newAdvs.length} 条历险、${newEssays.length} 篇随笔`, 'green', '📥')
             } else {
               showToast('JSON 格式不正确', 'warn')
@@ -448,7 +448,7 @@ function triggerImport() {
                   submitted: true,
                   ts: Date.now()
                 })
-                save()
+                autoSave()
                 showToast('已导入随笔: ' + parsed.title, 'green', '📝')
               }
             } else {
@@ -515,7 +515,7 @@ function clearData() {
           unlockedAchievements: [],
           theme: 'auto'
         })
-        save()
+        autoSave()
         showToast('数据已清除', 'warn')
       }}
     ]
@@ -741,9 +741,9 @@ function clearData() {
             <div class="md-body" v-html="marked.parse(currentEssay.content || '')"></div>
           </div>
           <div v-else class="card cp">
-            <input class="essay-title-inp" v-model="currentEssay.title" placeholder="标题…" maxlength="60" @input="save" />
-            <div style="margin:12px 0 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:12px;color:var(--t3)">心情</span><div class="mood-row"><button v-for="m in MOODS" :key="m" class="mood-btn" :class="{ on: currentEssay.mood === m }" @click="currentEssay.mood = m; save()">{{ m }}</button></div></div>
-            <textarea class="essay-ta" v-model="currentEssay.content" placeholder="支持 Markdown 语法…" @input="save"></textarea>
+            <input class="essay-title-inp" v-model="currentEssay.title" placeholder="标题…" maxlength="60" @input="autoSave" />
+            <div style="margin:12px 0 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:12px;color:var(--t3)">心情</span><div class="mood-row"><button v-for="m in MOODS" :key="m" class="mood-btn" :class="{ on: currentEssay.mood === m }" @click="currentEssay.mood = m; autoSave()">{{ m }}</button></div></div>
+            <textarea class="essay-ta" v-model="currentEssay.content" placeholder="支持 Markdown 语法…" @input="autoSave"></textarea>
             <div class="fb" style="margin-top:10px"><span style="font-size:11px;color:var(--t4);font-family:monospace">{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字 · 提交后不可修改</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" @click="deleteEssay">删除草稿</button><button class="btn btn-p btn-sm" @click="submitEssay">提交随笔</button></div></div>
           </div>
         </div>
