@@ -34,8 +34,12 @@ export async function onRequestGet(context) {
     })
   }
   
-  // 已登录，返回 JSON 并让前端处理跳转
-  return new Response(JSON.stringify({ email: userEmail }), {
-    headers: { 'Content-Type': 'application/json' }
+  // 已登录，立即重定向回首页
+  return new Response(null, {
+    status: 302,
+    headers: { 
+      'Location': '/',
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
+    }
   })
 }
