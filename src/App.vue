@@ -57,8 +57,8 @@ function logout() {
 
 // 页面加载时检查是否从登录返回
 onMounted(async () => {
-  // 检查是否在 /api/me 页面且已登录
-  if (window.location.pathname === '/api/me') {
+  // 检查是否在 /api/* 路径且已登录
+  if (window.location.pathname.startsWith('/api/')) {
     try {
       const res = await fetch('/api/me')
       if (res.ok) {
@@ -79,11 +79,8 @@ onMounted(async () => {
     const me = await getMe()
     user.value = me
     if (me.authenticated) {
-      // 已登录，自动加载数据
-      const result = await loadData('default')
-      if (result.success && result.data) {
-        Object.assign(state, result.data)
-      }
+      // 已登录，从云端加载数据
+      await load()
     }
   } catch (e) {
     console.error('获取用户信息失败:', e)

@@ -183,6 +183,7 @@ function autoSave() {
 async function load() {
   try {
     const result = await loadData('default')
+    // 如果成功且有数据，加载数据；如果是 404（第一次使用），使用默认值
     if (result.success && result.data) {
       Object.assign(state, defaultState(), result.data)
       state.hero = Object.assign(defaultState().hero, result.data.hero || {})
@@ -206,6 +207,11 @@ async function load() {
       state.essays = result.data.essays || []
       state.unlockedAchievements = result.data.unlockedAchievements || []
       console.log('Loaded from cloud')
+    } else if (result.error === 'Unauthorized') {
+      console.log('未登录，使用默认数据')
+    } else {
+      // 404 或其他情况，使用默认值
+      console.log('云端无数据，使用默认值')
     }
   } catch (e) {
     console.error('Load from cloud failed:', e)
