@@ -60,7 +60,9 @@ onMounted(async () => {
   // 检查是否在 /api/* 路径
   if (window.location.pathname.startsWith('/api/')) {
     try {
-      const res = await fetch('/api/me')
+      const res = await fetch('/api/me', {
+        credentials: 'include'
+      })
       const data = await res.json()
       if (data.authenticated) {
         // 已登录，重定向回主页
