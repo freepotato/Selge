@@ -2,10 +2,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { marked } from 'marked'
 import JSZip from 'jszip'
-import { useStore } from './stores/store.js'
-import { checkLocalDirStatus, syncWithSavedDir, pickAndSyncDir, clearLocalDir, getDefaultPathHint } from './utils/localData.js'
+import { useStore } from './stores/cloudStore.js'
 
-const { state, XP_TABLE, XP_ESSAY, MOODS, ACHIEVEMENTS, COIN_SVG, COIN_ITEMS, DAILY_QUOTES, load, save, uid, today, fmtDate, randInt, getLevel, getLevelTitle, getAdvCounts, esc } = useStore()
+const { state, XP_TABLE, XP_ESSAY, MOODS, ACHIEVEMENTS, COIN_SVG, COIN_ITEMS, DAILY_QUOTES, load, save, autoSave, uid, today, fmtDate, randInt, getLevel, getLevelTitle, getAdvCounts } = useStore()
 
 const currentPage = ref('character')
 const dialogOpen = ref(false)
