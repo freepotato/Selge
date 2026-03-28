@@ -54,30 +54,39 @@ async function readDataFromDir(rootHandle) {
   const essays = []
 
   // 进入 data/ 子目录
-  let dataDir
+  let dataDir = rootHandle
   try {
     dataDir = await rootHandle.getDirectoryHandle('data')
   } catch (e) {
-    // 兼容：如果没有 data/ 子目录，直接在根目录找
-    dataDir = rootHandle
+    // 没有 data 目录，使用根目录
   }
 
+  // 读取 JSON 文件
   try {
     const jsonFile = await dataDir.getFileHandle('selge-data.json')
     const file = await jsonFile.getFile()
     jsonData = JSON.parse(await file.text())
-  } catch (e) { /* 文件不存在，忽略 */ }
+  } catch (e) {
+    // JSON 文件不存在，忽略
+  }
 
+  // 读取 essays 文件夹
   try {
     const essaysDir = await dataDir.getDirectoryHandle('essays')
-    for await (const [name, handle] of essaysDir.entries()) {
-      if (handle.kind === 'file' && name.endsWith('.md')) {
-        const file = await handle.getFile()
-        const essay = parseMarkdownEssay(await file.text())
-        if (essay) essays.push(essay)
+    for await (const entry of essaysDir.values()) {
+      if (entry.kind === 'file' && entry.name.endsWith('.md')) {
+        try {
+          const file = await entry.getFile()
+          const essay = parseMarkdownEssay(await file.text())
+          if (essay) essays.push(essay)
+        } catch (e) {
+          // 单个文件读取失败，跳过
+        }
       }
     }
-  } catch (e) { /* essays 目录不存在，忽略 */ }
+  } catch (e) {
+    // essays 目录不存在，忽略
+  }
 
   return { jsonData, essays }
 }
@@ -164,7 +173,7 @@ export function getDefaultPathHint() {
   const ua = navigator.userAgent
   if (/iPhone|iPad/.test(ua)) return '文件 App → 我的 iPhone → Selge'
   if (/Android/.test(ua)) return '内部存储 → Selge'
-  if (/Mac/.test(ua)) return '~/Library/Application Support/Selge'
+  if (/Mac/.test(ua)) return '~/Documents/Selge/（请把 Selge 文件夹放在这里）'
   if (/Win/.test(ua)) return 'C:\\Users\\用户名\\AppData\\Local\\Selge'
   return '~/.config/Selge'
 }
