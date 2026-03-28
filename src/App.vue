@@ -3,8 +3,12 @@ import { ref, computed, onMounted } from 'vue'
 import { marked } from 'marked'
 import JSZip from 'jszip'
 import { useStore } from './stores/cloudStore.js'
+import { getMe, loadData, saveData, uploadImage } from './utils/authApi.js'
 
 const { state, XP_TABLE, XP_ESSAY, MOODS, ACHIEVEMENTS, COIN_SVG, COIN_ITEMS, DAILY_QUOTES, load, save, autoSave, uid, today, fmtDate, randInt, getLevel, getLevelTitle, getAdvCounts } = useStore()
+
+// 用户认证状态
+const user = ref({ authenticated: false, username: 'Guest' })
 
 const currentPage = ref('character')
 const dialogOpen = ref(false)
@@ -25,7 +29,21 @@ const advTypeOpen = ref(false)
 const themeOpen = ref(false)
 
 onMounted(async () => {
-  await load()
+  // 获取用户信息
+  try {
+    const me = await getMe()
+    user.value = me
+    if (me.authenticated) {
+      // 已登录，自动加载数据
+      const result = await loadData('default')
+      if (result.success && result.data) {
+        Object.assign(state, result.data)
+      }
+    }
+  } catch (e) {
+    console.error('获取用户信息失败:', e)
+  }
+  
   applyTheme(state.theme)
   if (state.advTypes.length > 0) newAdvType.value = state.advTypes[0].id
 
@@ -550,6 +568,7 @@ function clearData() {
         <button class="nav-tab" :class="{ active: currentPage === 'settings' }" @click="switchPage('settings')">设置</button>
       </div>
       <div class="nav-right">
+        <span class="user-badge">{{ user.authenticated ? user.username : 'Guest' }}</span>
         <button class="theme-btn" @click="toggleTheme">🌓</button>
       </div>
     </div>

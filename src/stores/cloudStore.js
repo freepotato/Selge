@@ -2,7 +2,7 @@
 // 云端存储版状态管理
 
 import { reactive } from 'vue'
-import { saveToCloud, loadFromCloud, debounce, MAIN_DATA_KEY } from '../utils/cloudApi.js'
+import { saveData, loadData } from '../utils/authApi.js'
 
 const XP_ESSAY = 20
 
@@ -157,27 +157,32 @@ function getAdvCounts(state) {
 
 const state = reactive(defaultState())
 
+let saveTimeout = null
+
 // Debounced save to cloud (1 second delay)
-const debouncedSave = debounce(async () => {
-  try {
-    await saveToCloud(MAIN_DATA_KEY, {
-      hero: state.hero,
-      advTypes: state.advTypes,
-      adventures: state.adventures,
-      essays: state.essays,
-      unlockedAchievements: state.unlockedAchievements,
-      theme: state.theme
-    })
-    console.log('Auto-saved to cloud')
-  } catch (e) {
-    console.error('Auto-save failed:', e)
-  }
-}, 1000)
+function autoSave() {
+  if (saveTimeout) clearTimeout(saveTimeout)
+  saveTimeout = setTimeout(async () => {
+    try {
+      await saveData('default', {
+        hero: state.hero,
+        advTypes: state.advTypes,
+        adventures: state.adventures,
+        essays: state.essays,
+        unlockedAchievements: state.unlockedAchievements,
+        theme: state.theme
+      })
+      console.log('Auto-saved to cloud')
+    } catch (e) {
+      console.error('Auto-save failed:', e)
+    }
+  }, 1000)
+}
 
 // Load from cloud
 async function load() {
   try {
-    const result = await loadFromCloud(MAIN_DATA_KEY)
+    const result = await loadData('default')
     if (result.success && result.data) {
       Object.assign(state, defaultState(), result.data)
       state.hero = Object.assign(defaultState().hero, result.data.hero || {})
@@ -199,7 +204,7 @@ async function load() {
 // Save to cloud immediately
 async function save() {
   try {
-    await saveToCloud(MAIN_DATA_KEY, {
+    await saveData('default', {
       hero: state.hero,
       advTypes: state.advTypes,
       adventures: state.adventures,
@@ -210,11 +215,6 @@ async function save() {
   } catch (e) {
     console.error('Save to cloud failed:', e)
   }
-}
-
-// Auto save (debounced)
-function autoSave() {
-  debouncedSave()
 }
 
 export function useStore() {

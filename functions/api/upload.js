@@ -1,12 +1,20 @@
-// POST /api/upload - 上传图片到 R2 并返回公网 URL
+// POST /api/upload - 上传图片到 R2（按用户隔离）
 export async function onRequestPost(context) {
   const { request, env } = context
   const r2 = env.selge_r2
 
+  const userEmail = request.headers.get('cf-access-authenticated-user-email')
+  if (!userEmail) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
   try {
     const formData = await request.formData()
     const file = formData.get('file')
-    const noteId = formData.get('noteId') || 'default'
+    const id = formData.get('id') || 'default'
 
     if (!file || !(file instanceof File)) {
       return new Response(JSON.stringify({ error: 'Missing file' }), {
@@ -15,25 +23,22 @@ export async function onRequestPost(context) {
       })
     }
 
-    // 生成唯一文件名
-    const ext = file.name.split('.').pop() || 'png'
     const timestamp = Date.now()
     const random = Math.random().toString(36).slice(2, 8)
+    const ext = file.name.split('.').pop() || 'png'
     const filename = `${timestamp}-${random}.${ext}`
-    const key = `${noteId}/${filename}`
+    const path = `${userEmail}/${id}/${filename}`
 
-    // 上传到 R2
-    await r2.put(key, file.stream(), {
+    await r2.put(path, file.stream(), {
       httpMetadata: {
         contentType: file.type || 'image/png'
       }
     })
 
-    // R2 公开访问 URL
     const publicUrl = 'https://pub-6cfc9e286538487c9b53729cec446578.r2.dev'
-    const url = `${publicUrl}/${key}`
+    const url = `${publicUrl}/${path}`
 
-    return new Response(JSON.stringify({ success: true, url, key }), {
+    return new Response(JSON.stringify({ success: true, url, path }), {
       headers: { 'Content-Type': 'application/json' }
     })
   } catch (e) {

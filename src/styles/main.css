@@ -109,6 +109,7 @@ a{color:inherit;text-decoration:none}
 .nav-right{display:flex;align-items:center;gap:12px;margin-left:auto}
 .theme-btn{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t3);border:1px solid var(--bd);background:var(--sur2);transition:all .2s}
 .theme-btn:hover{transform:scale(1.1);border-color:var(--ac);color:var(--ac);box-shadow:0 2px 8px rgba(61,107,48,.15)}
+.user-badge{font-size:13px;color:var(--t2);padding:4px 12px;background:var(--sur2);border-radius:16px;border:1px solid var(--bd);margin-right:8px}
 .save-hint{font-size:11px;color:var(--t4);font-family:'JetBrains Mono',monospace}
 .page{display:none;padding:40px 0 80px;flex:1;min-height:calc(100vh - 52px)}
 .page.active{display:block}

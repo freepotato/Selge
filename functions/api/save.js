@@ -1,21 +1,29 @@
-// POST /api/save - 保存内容到 KV
+// POST /api/save - 保存内容到 KV（按用户隔离）
 export async function onRequestPost(context) {
   const { request, env } = context
   const kv = env.selge_kv
 
+  const userEmail = request.headers.get('cf-access-authenticated-user-email')
+  if (!userEmail) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
   try {
     const body = await request.json()
-    const { key, data, type = 'json' } = body
+    const { id, content } = body
 
-    if (!key || data === undefined) {
-      return new Response(JSON.stringify({ error: 'Missing key or data' }), {
+    if (!id || content === undefined) {
+      return new Response(JSON.stringify({ error: 'Missing id or content' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    const value = type === 'json' ? JSON.stringify(data) : String(data)
-    await kv.put(key, value)
+    const key = `${userEmail}:${id}`
+    await kv.put(key, typeof content === 'object' ? JSON.stringify(content) : String(content))
 
     return new Response(JSON.stringify({ success: true, key }), {
       headers: { 'Content-Type': 'application/json' }

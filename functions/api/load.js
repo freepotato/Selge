@@ -1,19 +1,28 @@
-// GET /api/load - 从 KV 读取内容
+// GET /api/load - 从 KV 读取内容（按用户隔离）
 export async function onRequestGet(context) {
   const { request, env } = context
   const kv = env.selge_kv
 
+  const userEmail = request.headers.get('cf-access-authenticated-user-email')
+  if (!userEmail) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
   try {
     const url = new URL(request.url)
-    const key = url.searchParams.get('key')
+    const id = url.searchParams.get('id')
 
-    if (!key) {
-      return new Response(JSON.stringify({ error: 'Missing key' }), {
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'Missing id' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
+    const key = `${userEmail}:${id}`
     const value = await kv.get(key, { type: 'text' })
 
     if (value === null) {
@@ -23,7 +32,6 @@ export async function onRequestGet(context) {
       })
     }
 
-    // 尝试解析 JSON，失败则返回原始文本
     let data
     try {
       data = JSON.parse(value)
