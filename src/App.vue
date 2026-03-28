@@ -23,37 +23,11 @@ const newTypeXpMin = ref('')
 const newTypeXpMax = ref('')
 const advTypeOpen = ref(false)
 const themeOpen = ref(false)
-const syncBanner = ref(null) // null | 'prompt' | 'first-time'
-const syncPathHint = ref('')
-const localDirBound = ref(false) // 是否已绑定本地目录
 
 onMounted(async () => {
-  load()
+  await load()
   applyTheme(state.theme)
   if (state.advTypes.length > 0) newAdvType.value = state.advTypes[0].id
-
-  // 每次启动检查本地数据目录状态
-  try {
-    syncPathHint.value = getDefaultPathHint()
-    const bannerDismissed = localStorage.getItem('selge_banner_dismissed') === '1'
-    const status = await checkLocalDirStatus()
-    if (status === 'granted') {
-      localDirBound.value = true
-      const data = await syncWithSavedDir()
-      if (data.jsonData || data.essays?.length > 0) {
-        await importLocalData(data)
-        showToast('已同步本地数据', 'green', '✓')
-      }
-    } else if (status === 'prompt') {
-      localDirBound.value = true
-      if (!bannerDismissed) syncBanner.value = 'prompt'
-    } else if (status === 'none') {
-      localDirBound.value = false
-      if (!bannerDismissed) syncBanner.value = 'first-time'
-    }
-  } catch (e) {
-    console.log('本地数据检查失败:', e.message)
-  }
 
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.custom-select')) {
@@ -107,62 +81,6 @@ function toggleThemeDropdown() {
 }
 function selectAdvType(id) { newAdvType.value = id; advTypeOpen.value = false }
 function selectTheme(t) { applyTheme(t); themeOpen.value = false }
-
-async function importLocalData(data) {
-  try {
-    if (data.jsonData) {
-      Object.assign(state, data.jsonData)
-    }
-    if (data.essays && data.essays.length > 0) {
-      const existingIds = new Set(state.essays.map(e => e.id))
-      const newEssays = data.essays.filter(e => !existingIds.has(e.id))
-      state.essays.push(...newEssays)
-    }
-    save()
-  } catch (e) {
-    console.error('导入本地数据失败:', e)
-    showToast('导入失败', 'warn', '✗')
-  }
-}
-
-function dismissBanner() {
-  syncBanner.value = null
-  localStorage.setItem('selge_banner_dismissed', '1')
-}
-
-async function doSyncLocal() {
-  try {
-    const data = await syncWithSavedDir()
-    await importLocalData(data)
-    syncBanner.value = null
-    showToast('本地数据同步成功', 'green', '✓')
-  } catch (e) {
-    syncBanner.value = null
-    if (e.message !== 'permission-denied') showToast('同步失败：' + e.message, 'warn', '✗')
-  }
-}
-
-async function doPickDir() {
-  try {
-    const data = await pickAndSyncDir()
-    await importLocalData(data)
-    localDirBound.value = true
-    syncBanner.value = null
-    localStorage.removeItem('selge_banner_dismissed') // 绑定成功后重置
-    showToast('已绑定目录并同步数据', 'green', '✓')
-  } catch (e) {
-    // 用户取消选择，不关闭 banner，不显示错误
-    if (e.name !== 'AbortError') showToast('选择失败：' + e.message, 'warn', '✗')
-  }
-}
-
-async function doUnbindDir() {
-  await clearLocalDir()
-  localDirBound.value = false
-  syncBanner.value = null
-  localStorage.removeItem('selge_banner_dismissed')
-  showToast('已解除本地目录绑定', 'green', '✓')
-}
 
 function showDialog(opts) {
   dialogTitle.value = opts.title || ''
@@ -546,25 +464,77 @@ function parseMdFrontmatter(content) {
   return meta
 }
 
+const clearCountdown = ref(10)
+const clearTimer = ref(null)
+const clearReady = ref(false)
+
 function clearData() {
+  clearCountdown.value = 10
+  clearReady.value = false
   showDialog({
     title: '清除所有数据',
-    body: '此操作不可撤销，所有历险记录、随笔和设置都将被删除。',
+    body: '<div style="color:var(--t2)">此操作不可撤销，所有历险记录、随笔和设置都将被删除。</div><div id="clear-countdown" style="margin-top:12px;font-size:14px;color:#c0392b;font-weight:600">请等待 <span id="countdown-num">10</span> 秒后可确认清除</div>',
     actions: [
-      { label: '取消', cls: 'btn-g' },
-      { label: '确定清除', cls: 'btn-dg', fn: () => {
-        Object.assign(state, { hero: { name: '勇者', xp: 0, coin: 0, realMoney: 0, streak: 0, lastAdvDate: null, purchasedItems: [], purchaseHistory: [], bannerImg: null }, advTypes: [
-          { id: 'at1', emoji: '📚', name: '读书', xpMin: 30, xpMax: 40, pinned: true },
-          { id: 'at2', emoji: '🎬', name: '电影', xpMin: 5, xpMax: 8, pinned: true },
-          { id: 'at3', emoji: '🚶', name: '散步', xpMin: 3, xpMax: 5, pinned: true },
-          { id: 'at4', emoji: '🎸', name: '指弹', xpMin: 50, xpMax: 60, pinned: true }
-        ], adventures: [], essays: [], unlockedAchievements: [] })
+      { label: '取消', cls: 'btn-g', fn: () => { clearInterval(clearTimer.value) } },
+      { label: '确定清除', cls: 'btn-dg-clear', fn: () => {
+        if (!clearReady.value) return
+        localStorage.clear()
+        Object.assign(state, { 
+          hero: { name: '勇者', xp: 0, coin: 0, realMoney: 0, streak: 0, lastAdvDate: null, purchasedItems: [], purchaseHistory: [], bannerImg: null }, 
+          advTypes: [
+            { id: 'at1', emoji: '📚', name: '读书', xpMin: 30, xpMax: 40, pinned: true },
+            { id: 'at2', emoji: '🎬', name: '电影', xpMin: 5, xpMax: 8, pinned: true },
+            { id: 'at3', emoji: '🚶', name: '散步', xpMin: 3, xpMax: 5, pinned: true },
+            { id: 'at4', emoji: '🎸', name: '指弹', xpMin: 100, xpMax: 120, pinned: true }
+          ], 
+          adventures: [], 
+          essays: [], 
+          unlockedAchievements: [],
+          theme: 'auto'
+        })
         save()
         showToast('数据已清除', 'warn')
       }}
     ]
   })
+  // 设置初始禁用样式
+  setTimeout(() => {
+    const btn = document.querySelector('.btn-dg-clear')
+    if (btn) {
+      btn.disabled = true
+      btn.style.opacity = '0.5'
+      btn.style.cursor = 'not-allowed'
+    }
+    const countdownEl = document.getElementById('clear-countdown')
+    if (countdownEl) {
+      countdownEl.innerHTML = '请等待 <span id="countdown-num">10</span> 秒后可确认清除'
+      countdownEl.style.color = '#c0392b'
+    }
+  }, 0)
+  
+  clearTimer.value = setInterval(() => {
+    clearCountdown.value--
+    const numEl = document.getElementById('countdown-num')
+    const countdownEl = document.getElementById('clear-countdown')
+    if (numEl) numEl.textContent = clearCountdown.value
+    if (clearCountdown.value <= 0) {
+      clearInterval(clearTimer.value)
+      clearReady.value = true
+      if (countdownEl) {
+        countdownEl.textContent = '⚠️ 现在可以点击确定清除'
+        countdownEl.style.color = '#c0392b'
+      }
+      // 启用按钮
+      const btn = document.querySelector('.btn-dg-clear')
+      if (btn) {
+        btn.disabled = false
+        btn.style.opacity = '1'
+        btn.style.cursor = 'pointer'
+      }
+    }
+  }, 1000)
 }
+
 </script>
 
 <template>
@@ -589,24 +559,6 @@ function clearData() {
     <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">
       <span v-if="t.icon">{{ t.icon }}</span>
       <span>{{ t.msg }}</span>
-    </div>
-  </div>
-
-  <!-- 本地数据同步提示条 -->
-  <div v-if="syncBanner" class="sync-banner">
-    <div class="sync-banner-inner wrap">
-      <span v-if="syncBanner === 'prompt'" class="sync-banner-text">
-        📂 检测到本地数据目录，点击同步
-      </span>
-      <span v-else class="sync-banner-text">
-        💾 选择本地数据目录以启用自动同步 →
-        <span class="sync-path-hint">{{ syncPathHint }}</span>
-      </span>
-      <div class="sync-banner-actions">
-        <button v-if="syncBanner === 'prompt'" class="btn btn-p btn-sm" @click="doSyncLocal">同步</button>
-        <button v-else class="btn btn-p btn-sm" @click="doPickDir">选择目录</button>
-        <button class="sync-banner-dismiss" @click="dismissBanner">✕</button>
-      </div>
     </div>
   </div>
 
@@ -875,17 +827,6 @@ function clearData() {
           <div class="set-sec-title">数据</div>
           <div class="set-row"><div><div class="set-label">导出备份</div><div class="set-desc">导出为 JSON / Markdown / ZIP</div></div><div style="display:flex;gap:6px"><button class="btn btn-g btn-sm" @click="exportJson">📄 JSON</button><button class="btn btn-g btn-sm" @click="exportMarkdown">📝 MD</button><button class="btn btn-g btn-sm" @click="exportZip">📦 ZIP</button></div></div>
           <div class="set-row"><div><div class="set-label">导入数据</div><div class="set-desc">导入 JSON 文件或 Markdown 随笔</div></div><button class="btn btn-g btn-sm" @click="triggerImport">📥 导入</button></div>
-          <div class="set-row">
-            <div>
-              <div class="set-label">本地数据同步</div>
-              <div class="set-desc">{{ localDirBound ? syncPathHint : '暂未设置本地目录' }}</div>
-            </div>
-            <div style="display:flex;gap:6px">
-              <button class="btn btn-g btn-sm" @click="doPickDir">📁 {{ localDirBound ? '更换目录' : '选择目录' }}</button>
-              <button v-if="localDirBound" class="btn btn-g btn-sm" @click="doSyncLocal">↻ 立即同步</button>
-              <button v-if="localDirBound" class="btn btn-sm" style="color:var(--t3);border:1px solid var(--bd)" @click="doUnbindDir">解除</button>
-            </div>
-          </div>
           <div class="set-row"><div><div class="set-label">清除所有数据</div><div class="set-desc" style="color:#c0392b">不可撤销</div></div><button class="btn btn-sm" style="background:#c0392b;color:#fff" @click="clearData">清除</button></div>
         </div>
       </div>
