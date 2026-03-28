@@ -94,9 +94,9 @@ function defaultState() {
       bannerImg: null
     },
     advTypes: [
-      { id: 'at1', emoji: '📚', name: '读书', xpMin: 30, xpMax: 40, pinned: false },
-      { id: 'at2', emoji: '🎬', name: '电影', xpMin: 5, xpMax: 8, pinned: false },
       { id: 'at3', emoji: '🚶', name: '散步', xpMin: 3, xpMax: 5, pinned: false },
+      { id: 'at2', emoji: '🎬', name: '电影', xpMin: 5, xpMax: 8, pinned: false },
+      { id: 'at1', emoji: '📚', name: '读书', xpMin: 30, xpMax: 40, pinned: false },
       { id: 'at4', emoji: '🎸', name: '指弹', xpMin: 100, xpMax: 120, pinned: false }
     ],
     adventures: [],
@@ -158,7 +158,8 @@ function getAdvCounts(state) {
 const state = reactive(defaultState())
 
 // 立即保存到云端（用户操作时调用）
-function autoSave() {
+// 可选的 onSuccess 回调用于显示提示
+function autoSave(onSuccess) {
   try {
     saveData('default', {
       hero: state.hero,
@@ -167,8 +168,12 @@ function autoSave() {
       essays: state.essays,
       unlockedAchievements: state.unlockedAchievements,
       theme: state.theme
+    }).then(() => {
+      console.log('Saved to cloud')
+      if (onSuccess) onSuccess()
+    }).catch(e => {
+      console.error('Save to cloud failed:', e)
     })
-    console.log('Saved to cloud')
   } catch (e) {
     console.error('Save to cloud failed:', e)
   }

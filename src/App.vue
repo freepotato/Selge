@@ -22,7 +22,7 @@ const currentEssay = ref(null)
 const essayTagInput = ref('')
 const achFilter = ref('all')
 const newAdvTitle = ref('')
-const newAdvType = ref('at1')
+const newAdvType = ref('at3')
 const newTypeEmoji = ref('')
 const newTypeName = ref('')
 const newTypeXpMin = ref('')
@@ -103,7 +103,7 @@ function applyTheme(t) {
   if (t === 'light') html.setAttribute('data-theme', 'light')
   else if (t === 'dark') html.setAttribute('data-theme', 'dark')
   else html.setAttribute('data-theme', window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-  autoSave()
+  saveWithToast()
 }
 
 function toggleTheme() {
@@ -159,6 +159,13 @@ function showToast(msg, type = 'green', icon = '') {
   const id = Date.now()
   toasts.value.push({ id, msg, type, icon })
   setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id) }, 2500)
+}
+
+// 保存并显示提示
+function saveWithToast() {
+  autoSave(() => {
+    showToast('已同步云端', 'green', '☁️')
+  })
 }
 
 const currentLevel = computed(() => getLevel(state.hero.xp))
@@ -217,7 +224,7 @@ function addAdventure() {
     state.hero.lastAdvDate = tDate
   }
   newAdvTitle.value = ''
-  autoSave()
+  saveWithToast()
   showToast(`${t?.emoji || '⚔️'} 历险已记录！+${xp} XP`, 'green')
   checkAchievements()
 }
@@ -276,7 +283,7 @@ function buyItem(item) {
         state.hero.purchasedItems.push(item.id)
         if (!state.hero.purchaseHistory) state.hero.purchaseHistory = []
         state.hero.purchaseHistory.unshift({ icon: item.icon, name: item.name, price: item.price, date: fmtDate(today()) })
-        autoSave()
+        saveWithToast()
         showToast(`恭喜获得 ${item.name}！`, 'green', item.icon)
       }}
     ]
@@ -287,7 +294,7 @@ function newEssay() {
   const id = uid()
   state.essays.unshift({ id, title: '', content: '', mood: '😊', date: today(), ts: Date.now(), submitted: false, tags: [] })
   currentEssay.value = state.essays[0]
-  autoSave()
+  saveWithToast()
 }
 
 function openEssay(essay) { 
@@ -301,14 +308,14 @@ function addEssayTag() {
   if (!currentEssay.value.tags) currentEssay.value.tags = []
   if (!currentEssay.value.tags.includes(tag)) {
     currentEssay.value.tags.push(tag)
-    autoSave()
+    saveWithToast()
   }
   essayTagInput.value = ''
 }
 
 function removeEssayTag(index) {
   currentEssay.value.tags.splice(index, 1)
-  autoSave()
+  saveWithToast()
 }
 
 function deleteEssay() {
@@ -320,7 +327,7 @@ function deleteEssay() {
       { label: '删除', cls: 'btn-dg', fn: () => {
         state.essays = state.essays.filter(e => e.id !== currentEssay.value.id)
         currentEssay.value = null
-        autoSave()
+        saveWithToast()
       }}
     ]
   })
@@ -343,7 +350,7 @@ function submitEssay() {
         const wordCount = currentEssay.value.content.length
         const xpGain = Math.min(wordCount, 1000)
         state.hero.xp += xpGain
-        autoSave()
+        saveWithToast()
         showToast(`随笔已提交 +${xpGain} XP`, 'green', '📝')
       }}
     ]
@@ -361,13 +368,13 @@ function addAdvType() {
   if (xpMin > xpMax) { showToast('最小XP不能大于最大XP', 'warn'); return }
   state.advTypes.push({ id: uid(), emoji, name, xpMin, xpMax, pinned: false })
   newTypeEmoji.value = ''; newTypeName.value = ''; newTypeXpMin.value = ''; newTypeXpMax.value = ''
-  autoSave()
+  saveWithToast()
   showToast('已添加历险类型', 'green')
 }
 
 function togglePin(typeId) {
   const t = state.advTypes.find(x => x.id === typeId)
-  if (t) { t.pinned = !t.pinned; autoSave() }
+  if (t) { t.pinned = !t.pinned; saveWithToast() }
 }
 
 function showAbout() {
@@ -488,7 +495,7 @@ function triggerImport() {
               }
               if (p.unlockedAchievements) state.unlockedAchievements = [...new Set([...state.unlockedAchievements, ...p.unlockedAchievements])]
               if (p.theme) state.theme = p.theme
-              autoSave()
+              saveWithToast()
               showToast(`已导入 ${newAdvs.length} 条历险、${newEssays.length} 篇随笔`, 'green', '📥')
             } else {
               showToast('JSON 格式不正确', 'warn')
@@ -519,7 +526,7 @@ function triggerImport() {
                   submitted: true,
                   ts: Date.now()
                 })
-                autoSave()
+                saveWithToast()
                 showToast('已导入随笔: ' + parsed.title, 'green', '📝')
               }
             } else {
@@ -586,7 +593,7 @@ function clearData() {
           unlockedAchievements: [],
           theme: 'auto'
         })
-        autoSave()
+        saveWithToast()
         showToast('数据已清除', 'warn')
       }}
     ]
@@ -822,8 +829,8 @@ function clearData() {
             <div class="md-body" v-html="marked.parse(currentEssay.content || '')"></div>
           </div>
           <div v-else class="card cp">
-            <input class="essay-title-inp" v-model="currentEssay.title" placeholder="标题…" maxlength="60" @blur="autoSave" />
-            <div style="margin:12px 0 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:12px;color:var(--t3)">心情</span><div class="mood-row"><button v-for="m in MOODS" :key="m" class="mood-btn" :class="{ on: currentEssay.mood === m }" @click="currentEssay.mood = m; autoSave()">{{ m }}</button></div></div>
+            <input class="essay-title-inp" v-model="currentEssay.title" placeholder="标题…" maxlength="60" @blur="saveWithToast" />
+            <div style="margin:12px 0 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:12px;color:var(--t3)">心情</span><div class="mood-row"><button v-for="m in MOODS" :key="m" class="mood-btn" :class="{ on: currentEssay.mood === m }" @click="currentEssay.mood = m; saveWithToast()">{{ m }}</button></div></div>
             <div style="margin:12px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <span style="font-size:12px;color:var(--t3)">标签</span>
               <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1">
@@ -836,7 +843,7 @@ function clearData() {
                 </div>
               </div>
             </div>
-            <textarea class="essay-ta" v-model="currentEssay.content" placeholder="支持 Markdown 语法…" @blur="autoSave"></textarea>
+            <textarea class="essay-ta" v-model="currentEssay.content" placeholder="支持 Markdown 语法…" @blur="saveWithToast"></textarea>
             <div class="fb" style="margin-top:10px"><span style="font-size:11px;color:var(--t4);font-family:monospace">{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字 · 提交后不可修改</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" @click="deleteEssay">删除草稿</button><button class="btn btn-p btn-sm" @click="submitEssay">提交随笔</button></div></div>
           </div>
         </div>
@@ -848,19 +855,13 @@ function clearData() {
   <div class="page" :class="{ active: currentPage === 'achievements' }">
     <div class="wrap">
       <div class="mb24"><div class="page-title">成就殿堂</div><div class="page-sub">每一步都值得被铭记</div></div>
-      <div class="ach-stats">
-        <div class="ach-stat"><div class="ach-stat-val">{{ state.unlockedAchievements.length }}</div><div class="ach-stat-label">已解锁</div></div>
-        <div class="ach-stat"><div class="ach-stat-val">{{ state.adventures.length }}</div><div class="ach-stat-label">总历险</div></div>
-        <div class="ach-stat"><div class="ach-stat-val">{{ getAdvCounts(state).read || 0 }}</div><div class="ach-stat-label">读书</div></div>
-        <div class="ach-stat"><div class="ach-stat-val">{{ getAdvCounts(state).movie || 0 }}</div><div class="ach-stat-label">电影</div></div>
-      </div>
       <div class="ach-tabs">
         <button class="ach-tab" :class="{ active: achFilter === 'all' }" @click="achFilter = 'all'">全部</button>
         <button class="ach-tab" :class="{ active: achFilter === 'adventure' }" @click="achFilter = 'adventure'">历险</button>
-        <button class="ach-tab" :class="{ active: achFilter === 'read' }" @click="achFilter = 'read'">读书</button>
-        <button class="ach-tab" :class="{ active: achFilter === 'movie' }" @click="achFilter = 'movie'">电影</button>
-        <button class="ach-tab" :class="{ active: achFilter === 'guitar' }" @click="achFilter = 'guitar'">指弹</button>
         <button class="ach-tab" :class="{ active: achFilter === 'walk' }" @click="achFilter = 'walk'">散步</button>
+        <button class="ach-tab" :class="{ active: achFilter === 'movie' }" @click="achFilter = 'movie'">电影</button>
+        <button class="ach-tab" :class="{ active: achFilter === 'read' }" @click="achFilter = 'read'">读书</button>
+        <button class="ach-tab" :class="{ active: achFilter === 'guitar' }" @click="achFilter = 'guitar'">指弹</button>
       </div>
       <div class="ach-grid">
         <div v-for="a in (achFilter === 'all' ? sortedAchievements : ACHIEVEMENTS[achFilter] || [])" :key="a.id" class="ach-card" :class="{ unlocked: state.unlockedAchievements.includes(a.id), locked: !state.unlockedAchievements.includes(a.id) }">
@@ -907,8 +908,8 @@ function clearData() {
       <div style="max-width:600px;display:flex;flex-direction:column;gap:20px">
         <div class="card cp">
           <div class="set-sec-title">个人信息</div>
-          <div class="set-row"><div><div class="set-label">角色名</div><div class="set-desc">显示在账户按钮中</div></div><input class="inp" v-model="state.hero.name" style="width:180px" maxlength="20" @blur="autoSave" /></div>
-          <div class="set-row"><div><div class="set-label">储蓄</div><div class="set-desc">当前拥有的现实资金</div></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--t3)">¥</span><input class="inp" type="number" v-model.number="state.hero.realMoney" style="width:100px" min="0" placeholder="0" @blur="autoSave" /></div></div>
+          <div class="set-row"><div><div class="set-label">角色名</div><div class="set-desc">显示在账户按钮中</div></div><input class="inp" v-model="state.hero.name" style="width:180px" maxlength="20" @blur="saveWithToast" /></div>
+          <div class="set-row"><div><div class="set-label">储蓄</div><div class="set-desc">当前拥有的现实资金</div></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--t3)">¥</span><input class="inp" type="number" v-model.number="state.hero.realMoney" style="width:100px" min="0" placeholder="0" @blur="saveWithToast" /></div></div>
         </div>
         <div class="card cp">
           <div class="set-sec-title">历险类型管理</div>
@@ -956,16 +957,7 @@ function clearData() {
     <div class="dlg"><div class="dlg-title" v-html="dialogTitle"></div><div class="dlg-body" v-html="dialogBody"></div><div class="dlg-actions"><button v-for="(action, i) in dialogActions" :key="i" class="btn btn-sm" :class="action.cls" @click="action.fn ? (action.fn(), closeDialog()) : closeDialog()">{{ action.label }}</button></div></div>
   </div>
 
-  <div class="mob-nav">
-    <div class="mob-nav-inner">
-      <div class="mob-tab" :class="{ active: currentPage === 'character' }" @click="switchPage('character')"><span class="mob-tab-icon">🧭</span><span>角色</span></div>
-      <div class="mob-tab" :class="{ active: currentPage === 'adventure' }" @click="switchPage('adventure')"><span class="mob-tab-icon">⚔️</span><span>历险</span></div>
-      <div class="mob-tab" :class="{ active: currentPage === 'essays' }" @click="switchPage('essays')"><span class="mob-tab-icon">📝</span><span>随笔</span></div>
-      <div class="mob-tab" :class="{ active: currentPage === 'achievements' }" @click="switchPage('achievements')"><span class="mob-tab-icon">🏆</span><span>成就</span></div>
-      <div class="mob-tab" :class="{ active: currentPage === 'shop' }" @click="switchPage('shop')"><span class="mob-tab-icon">🛒</span><span>商店</span></div>
-      <div class="mob-tab" :class="{ active: currentPage === 'settings' }" @click="switchPage('settings')"><span class="mob-tab-icon">⚙️</span><span>设置</span></div>
-    </div>
-  </div>
+  
 </template>
 
 <style>
