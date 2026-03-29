@@ -103,7 +103,14 @@ function defaultState() {
     essays: [],
     theme: 'auto',
     currentEssayId: null,
-    unlockedAchievements: []
+    unlockedAchievements: [],
+    vault: {
+      categories: [
+        { id: 'vc_vault', name: '全部', locked: true, isAll: true },
+        { id: 'vc_guitar', name: '指弹谱', locked: true }
+      ],
+      items: []
+    }
   }
 }
 
@@ -173,6 +180,7 @@ function autoSave(onSuccess) {
       adventures: state.adventures,
       essays: state.essays,
       unlockedAchievements: state.unlockedAchievements,
+      vault: state.vault,
       theme: state.theme
     }).then(() => {
       console.log('Saved to cloud')
@@ -216,6 +224,15 @@ async function load() {
       state.essays = result.data.essays || []
       // 迁移旧数据：字符串数组 → 对象数组
       state.unlockedAchievements = (result.data.unlockedAchievements || []).map(a => typeof a === 'string' ? { id: a, date: null } : a)
+      if (result.data.vault) {
+        // 合并 vault 数据：保留默认的 locked 分类，新增用户的自定义分类
+        const defaultCats = defaultState().vault.categories
+        const userCats = (result.data.vault.categories || []).filter(uc => !defaultCats.find(dc => dc.id === uc.id))
+        state.vault.categories = [...defaultCats, ...userCats]
+        // 迁移旧数据：所有项目默认归属全部分类
+        const vaultId = 'vc_vault'
+        state.vault.items = (result.data.vault.items || []).map(item => ({ ...item, catId: item.catId || vaultId }))
+      }
       console.log('Loaded from cloud')
     } else if (result.error === 'Unauthorized') {
       console.log('未登录，使用默认数据')
@@ -241,6 +258,7 @@ async function save() {
       adventures: state.adventures,
       essays: state.essays,
       unlockedAchievements: state.unlockedAchievements,
+      vault: state.vault,
       theme: state.theme
     })
   } catch (e) {

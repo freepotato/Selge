@@ -32,6 +32,14 @@ const advPage = ref(1)
 const advPerPage = 10
 const editingAdvId = ref(null)
 const editingAdvTitle = ref('')
+// Vault
+const vaultCat = ref('vc_vault')
+const vaultPage = ref(1)
+const vaultPerPage = 8
+const vaultOpenId = ref(null)
+const vaultAddCatShow = ref(false)
+const vaultNewCatName = ref('')
+const vaultUploadingId = ref(null)
 const newTypeXpMax = ref('')
 const advTypeOpen = ref(false)
 const themeOpen = ref(false)
@@ -286,6 +294,122 @@ function deleteAdventure(a) {
   })
 }
 
+// Vault functions
+const R2_URL = 'https://pub-6cfc9e286538487c9b53729cec446578.r2.dev'
+
+function addVaultCat() {
+  const name = vaultNewCatName.value.trim()
+  if (!name) return
+  const id = 'vc_' + uid()
+  state.vault.categories.push({ id, name, locked: false })
+  vaultNewCatName.value = ''
+  vaultAddCatShow.value = false
+  saveWithToast()
+  showToast('分类已添加', 'green')
+}
+
+function deleteVaultCat(cat) {
+  if (cat.locked) return
+  showDialog({
+    title: '删除分类',
+    body: `确定删除「${cat.name}」分类？该分类下的项目不会被删除，将移至第一个分类。`,
+    actions: [
+      { label: '取消', cls: 'btn-g' },
+      { label: '删除', cls: 'btn-dg', fn: () => {
+        const firstCatId = state.vault.categories[0].id
+        state.vault.items.forEach(item => {
+          if (item.catId === cat.id) item.catId = firstCatId
+        })
+        state.vault.categories = state.vault.categories.filter(c => c.id !== cat.id)
+        if (vaultCat.value === cat.id) { vaultCat.value = state.vault.categories[0].id; vaultPage.value = 1 }
+        saveWithToast()
+        showToast('分类已删除', 'green')
+      }}
+    ]
+  })
+}
+
+function addVaultItem() {
+  const item = { id: uid(), catId: vaultCat.value, name: '', images: [], date: today(), ts: Date.now() }
+  state.vault.items.unshift(item)
+  vaultOpenId.value = item.id
+  vaultPage.value = 1
+  saveWithToast()
+}
+
+function deleteVaultItem(item) {
+  const isEmpty = !item.name?.trim() && !(item.images?.length)
+  if (isEmpty) {
+    state.vault.items = state.vault.items.filter(x => x.id !== item.id)
+    vaultOpenId.value = null
+    if (vaultPage.value > vaultTotalPages.value) vaultPage.value = vaultTotalPages.value
+    return
+  }
+  showDialog({
+    title: '删除项目',
+    body: `确定删除「${item.name || '未命名'}」？`,
+    actions: [
+      { label: '取消', cls: 'btn-g' },
+      { label: '删除', cls: 'btn-dg', fn: () => {
+        state.vault.items = state.vault.items.filter(x => x.id !== item.id)
+        vaultOpenId.value = null
+        if (vaultPage.value > vaultTotalPages.value) vaultPage.value = vaultTotalPages.value
+        saveWithToast()
+        showToast('项目已删除', 'green')
+      }}
+    ]
+  })
+}
+
+function triggerVaultUpload(itemId) {
+  vaultUploadingId.value = itemId
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/jpeg,image/png,image/webp'
+  input.multiple = true
+  input.onchange = async (e) => {
+    const files = Array.from(e.target.files)
+    if (!files.length) return
+    const item = state.vault.items.find(x => x.id === itemId)
+    if (!item) return
+    let uploaded = 0
+    for (const file of files) {
+      try {
+        const result = await uploadImage(file, `vault/${itemId}`)
+        if (result.success && result.url) { item.images.push(result.url); uploaded++ }
+        else { showToast(`上传失败: ${file.name}`, 'red') }
+      } catch (err) {
+        console.error('Upload failed:', err)
+        showToast(`上传失败: ${file.name}`, 'red')
+      }
+    }
+    vaultUploadingId.value = null
+    if (uploaded > 0) {
+      saveWithToast()
+      showToast(`已上传 ${uploaded} 张图片`, 'green')
+    }
+  }
+  input.click()
+}
+
+function removeVaultImage(item, idx) {
+  item.images.splice(idx, 1)
+  saveWithToast()
+  showToast('图片已移除', 'green')
+}
+
+const vaultFilteredItems = computed(() => {
+  if (vaultCurrentCat.value?.isAll) return state.vault.items
+  return state.vault.items.filter(i => i.catId === vaultCat.value)
+})
+
+const vaultCurrentCat = computed(() => state.vault.categories.find(c => c.id === vaultCat.value))
+const vaultTotalPages = computed(() => Math.max(1, Math.ceil(vaultFilteredItems.value.length / vaultPerPage)))
+const vaultPagedItems = computed(() => {
+  const start = (vaultPage.value - 1) * vaultPerPage
+  return vaultFilteredItems.value.slice(start, start + vaultPerPage)
+})
+
 const heatmapData = computed(() => {
   const weeks = heatmapWeeks.value
   const todayD = new Date()
@@ -366,6 +490,12 @@ function removeEssayTag(index) {
 }
 
 function deleteEssay() {
+  const isEmpty = !currentEssay.value.title?.trim() && !currentEssay.value.content?.trim() && !(currentEssay.value.tags?.length)
+  if (isEmpty) {
+    state.essays = state.essays.filter(e => e.id !== currentEssay.value.id)
+    currentEssay.value = null
+    return
+  }
   showDialog({
     title: '删除草稿',
     body: '确定删除这篇草稿？',
@@ -717,6 +847,7 @@ function clearData() {
         <button class="nav-tab" :class="{ active: currentPage === 'essays' }" @click="switchPage('essays')">随笔</button>
         <button class="nav-tab" :class="{ active: currentPage === 'achievements' }" @click="switchPage('achievements')">成就</button>
         <button class="nav-tab" :class="{ active: currentPage === 'shop' }" @click="switchPage('shop')">商店</button>
+        <button class="nav-tab" :class="{ active: currentPage === 'vault' }" @click="switchPage('vault')">仓库</button>
         <button class="nav-tab" :class="{ active: currentPage === 'settings' }" @click="switchPage('settings')">设置</button>
       </div>
       <div class="nav-right">
@@ -740,6 +871,7 @@ function clearData() {
       <button class="mob-menu-item" :class="{ active: currentPage === 'essays' }" @click="switchPage('essays'); mobileMenuOpen = false">随笔</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'achievements' }" @click="switchPage('achievements'); mobileMenuOpen = false">成就</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'shop' }" @click="switchPage('shop'); mobileMenuOpen = false">商店</button>
+      <button class="mob-menu-item" :class="{ active: currentPage === 'vault' }" @click="switchPage('vault'); mobileMenuOpen = false">仓库</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'settings' }" @click="switchPage('settings'); mobileMenuOpen = false">设置</button>
     </div>
   </div>
@@ -997,6 +1129,89 @@ function clearData() {
     </div>
   </div>
 
+  <!-- Vault Page -->
+  <div class="page" :class="{ active: currentPage === 'vault' }">
+    <div class="wrap">
+      <div class="mb24"><div class="page-title">仓库</div><div class="page-sub">存放你的文件（File Size < 300MB）。</div></div>
+      <!-- 分类切换 -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+        <button v-for="cat in state.vault.categories" :key="cat.id" class="hm-range-btn" :class="{ active: vaultCat === cat.id }" @click="vaultCat = cat.id; vaultPage = 1">
+          {{ cat.name }}
+        </button>
+      </div>
+      <!-- 添加分类 -->
+      <div v-if="!vaultAddCatShow" style="margin-bottom:20px">
+        <button class="btn btn-g btn-sm" @click="vaultAddCatShow = true">+ 新建分类</button>
+      </div>
+      <div v-else style="display:flex;gap:8px;margin-bottom:20px;align-items:center">
+        <input class="inp inp-h" v-model="vaultNewCatName" placeholder="分类名称" maxlength="20" style="flex:1;min-width:120px" @keydown.enter="addVaultCat" @keydown.escape="vaultAddCatShow = false" />
+        <button class="btn btn-p btn-sm" @click="addVaultCat">添加</button>
+        <button class="btn btn-g btn-sm" @click="vaultAddCatShow = false; vaultNewCatName = ''">取消</button>
+      </div>
+      <!-- 分类管理 -->
+      <div v-if="state.vault.categories.length > 1" style="margin-bottom:20px;display:flex;gap:6px;flex-wrap:wrap">
+        <div v-for="cat in state.vault.categories" :key="cat.id" style="display:flex;align-items:center;gap:6px;background:var(--bg2);padding:4px 10px;border-radius:99px;font-size:12px;color:var(--t3)">
+          <span>{{ cat.name }}</span>
+          <button v-if="!cat.locked" class="vault-cat-del" @click="deleteVaultCat(cat)">✕</button>
+        </div>
+      </div>
+      <!-- 当前分类内容 -->
+      <div class="card cp">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--bd);flex-wrap:wrap;gap:8px">
+          <span style="font-size:12px;color:var(--t3);font-family:monospace">{{ vaultFilteredItems.length }} 项</span>
+          <button class="btn btn-p btn-sm" @click="addVaultItem">+ 添加项目</button>
+        </div>
+        <div v-if="!vaultFilteredItems.length" class="empty" style="padding-top:24px"><div class="empty-icon">📂</div>暂无内容</div>
+        <div v-else style="padding-top:12px">
+          <div v-for="item in vaultPagedItems" :key="item.id" class="vault-item">
+            <div class="vault-item-header" @click="vaultOpenId = vaultOpenId === item.id ? null : item.id">
+              <div style="flex:1;min-width:0">
+                <div class="vault-item-title">{{ item.name || '未命名' }}</div>
+                <div style="font-size:11px;color:var(--t3);font-family:monospace;margin-top:2px">{{ (item.images || []).length }} 张图片 · {{ fmtDate(item.date) }}</div>
+              </div>
+              <span style="font-size:12px;color:var(--t3)">{{ vaultOpenId === item.id ? '▲' : '▼' }}</span>
+            </div>
+            <div v-if="vaultOpenId === item.id" class="vault-item-body">
+              <!-- 图片展示 -->
+              <div v-if="(item.images || []).length" class="vault-images">
+                <div v-for="(img, idx) in item.images" :key="idx" class="vault-img-wrap">
+                  <img class="vault-img" :src="img" loading="lazy" @click="window.open(img)" />
+                  <button class="vault-img-del" @click.stop="removeVaultImage(item, idx)">✕</button>
+                </div>
+              </div>
+              <div v-else style="font-size:13px;color:var(--t4);padding:12px 0">暂无图片</div>
+              <!-- 上传图片 -->
+              <div class="vault-upload-area" @click="triggerVaultUpload(item.id)">
+                <span>📷 点击上传图片</span>
+                <span style="font-size:11px;color:var(--t4)">支持 JPG / PNG / WebP</span>
+              </div>
+              <!-- 分类设置 -->
+              <div style="margin-top:12px">
+                <div style="font-size:12px;color:var(--t3);margin-bottom:6px">分类</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <div v-for="cat in state.vault.categories.filter(c => !c.isAll)" :key="cat.id">
+                    <button class="vault-cat-btn" :class="{ active: item.catId === cat.id }" @click="item.catId = item.catId === cat.id ? null : cat.id; saveWithToast()">{{ cat.name }}</button>
+                  </div>
+                </div>
+              </div>
+              <!-- 编辑名称 -->
+              <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+                <input class="inp inp-h" v-model="item.name" placeholder="项目名称" maxlength="60" style="flex:1;min-width:120px" @blur="saveWithToast" @keydown.enter="saveWithToast" />
+                <button class="btn btn-dg btn-sm" @click="deleteVaultItem(item)">删除项目</button>
+              </div>
+            </div>
+          </div>
+          <!-- 分页 -->
+          <div v-if="vaultTotalPages > 1" class="adv-pagination">
+            <button class="btn btn-g btn-sm" :disabled="vaultPage <= 1" @click="vaultPage--">上一页</button>
+            <span style="font-size:12px;color:var(--t3)">{{ vaultPage }} / {{ vaultTotalPages }}</span>
+            <button class="btn btn-g btn-sm" :disabled="vaultPage >= vaultTotalPages" @click="vaultPage++">下一页</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Page -->
   <div class="page" :class="{ active: currentPage === 'settings' }">
     <div class="wrap">
@@ -1014,8 +1229,10 @@ function clearData() {
           <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--bd)">
             <div style="font-size:12px;color:var(--t3);margin-bottom:10px">添加新历险类型</div>
             <div class="at-add-row">
-              <div class="at-emoji-name-row"><input class="inp inp-h" v-model="newTypeEmoji" placeholder="🎯" maxlength="2" /><input class="inp inp-h" v-model="newTypeName" placeholder="类型名称" maxlength="12" /></div>
-              <div class="at-xp-row"><input class="inp inp-h" type="number" v-model.number="newTypeXpMin" placeholder="最小" min="1" /><input class="inp inp-h" type="number" v-model.number="newTypeXpMax" placeholder="最大" min="1" /></div>
+              <input class="inp inp-h at-emoji-inp" v-model="newTypeEmoji" placeholder="🎯" maxlength="2" />
+              <input class="inp inp-h" v-model="newTypeName" placeholder="类型名称" maxlength="12" />
+              <input class="inp inp-h at-xp-inp" type="number" v-model.number="newTypeXpMin" placeholder="最小" min="1" />
+              <input class="inp inp-h at-xp-inp" type="number" v-model.number="newTypeXpMax" placeholder="最大" min="1" />
               <button class="btn btn-p btn-sm" @click="addAdvType">添加</button>
             </div>
           </div>
