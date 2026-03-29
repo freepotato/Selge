@@ -7,6 +7,8 @@
 ![JavaScript](https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![Cloudflare](https://img.shields.io/badge/-Cloudflare-F38020?logo=cloudflare)
 
+[中文](README_zh.md) [ENGLISH](README.md)
+
 ## What is Selge for?
 "Gaming is just a dopamine loop that traps people into wasting time. It hits hard, then it slowly fades, leaving you stuck with nothing meaningful. I’ve seen it. You’re living it. Break the cycle, Morty. Rise above. Focus on building something that actually matters. SELF FORGE." –– Rick Sanchez
 
