@@ -55,6 +55,14 @@ function nextVaultImg() {
   if (vaultViewerIdx.value < vaultDetailItem.value.images.length - 1) vaultViewerIdx.value++
 }
 
+// 触摸滑动
+const viewerTouchX = ref(0)
+function viewerTouchStart(e) { viewerTouchX.value = e.touches[0].clientX }
+function viewerTouchEnd(e) {
+  const dx = e.changedTouches[0].clientX - viewerTouchX.value
+  if (Math.abs(dx) > 50) { dx > 0 ? prevVaultImg() : nextVaultImg() }
+}
+
 function toggleVaultCat(catId) {
   if (!vaultDetailItem.value) return
   vaultDetailItem.value.catId = vaultDetailItem.value.catId === catId ? null : catId
@@ -1254,13 +1262,10 @@ function clearData() {
   </div>
 
   <!-- 图片查看器 -->
-  <div v-if="vaultViewerIdx !== null && vaultDetailItem?.images?.length" class="vault-viewer-overlay" @click.self="closeVaultViewer">
-    <div class="vault-viewer">
-      <button class="vault-viewer-close" @click="closeVaultViewer">✕</button>
-      <button v-if="vaultViewerIdx > 0" class="vault-viewer-nav vault-viewer-prev" @click="prevVaultImg">‹</button>
-      <img :src="vaultDetailItem.images[vaultViewerIdx]" class="vault-viewer-img" />
-      <button v-if="vaultViewerIdx < vaultDetailItem.images.length - 1" class="vault-viewer-nav vault-viewer-next" @click="nextVaultImg">›</button>
-    </div>
+  <div v-if="vaultViewerIdx !== null && vaultDetailItem?.images?.length" class="vault-viewer-overlay" @click.self="closeVaultViewer"
+    @touchstart="viewerTouchStart" @touchend="viewerTouchEnd">
+    <button class="vault-viewer-close" @click="closeVaultViewer">✕</button>
+    <img :src="vaultDetailItem.images[vaultViewerIdx]" class="vault-viewer-img" />
   </div>
 
   <!-- Settings Page -->
