@@ -5,6 +5,7 @@ import { reactive } from 'vue'
 import { saveData, loadData } from '../utils/authApi.js'
 
 const XP_ESSAY = 20
+const STORAGE_KEY = 'selge_cache'
 
 // 等级表（最高 10 级）
 const XP_TABLE = {}
@@ -173,16 +174,21 @@ function autoSave(onSuccess) {
     console.log('Skip save: cloud data not loaded yet')
     return
   }
+  const data = {
+    hero: state.hero,
+    advTypes: state.advTypes,
+    adventures: state.adventures,
+    essays: state.essays,
+    unlockedAchievements: state.unlockedAchievements,
+    vault: state.vault,
+    theme: state.theme,
+    _ts: Date.now()
+  }
+  // 立即写入本地缓存
+  saveToCache(data)
+  // 异步写入云端
   try {
-    saveData('default', {
-      hero: state.hero,
-      advTypes: state.advTypes,
-      adventures: state.adventures,
-      essays: state.essays,
-      unlockedAchievements: state.unlockedAchievements,
-      vault: state.vault,
-      theme: state.theme
-    }).then(() => {
+    saveData('default', data).then(() => {
       console.log('Saved to cloud')
       if (onSuccess) onSuccess()
     }).catch(e => {
@@ -196,49 +202,90 @@ function autoSave(onSuccess) {
 // Load from cloud
 let cloudLoaded = false
 
+// 从 localStorage 读取缓存
+function loadFromCache() {
+  try {
+    const cached = localStorage.getItem(STORAGE_KEY)
+    if (cached) {
+      const data = JSON.parse(cached)
+      console.log('Loaded from cache')
+      return data
+    }
+  } catch (e) {
+    console.error('Load cache failed:', e)
+  }
+  return null
+}
+
+// 保存到 localStorage
+function saveToCache(data) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    console.log('Saved to cache')
+  } catch (e) {
+    console.error('Save cache failed:', e)
+  }
+}
+
+// 应用数据到 state
+function applyData(state, data) {
+  Object.assign(state, defaultState(), data)
+  state.hero = Object.assign(defaultState().hero, data.hero || {})
+  state.hero.coin = data.hero?.coin || 0
+  state.hero.realMoney = data.hero?.realMoney || 0
+  state.hero.purchasedItems = data.hero?.purchasedItems || []
+  state.hero.purchaseHistory = data.hero?.purchaseHistory || []
+
+  if (data.advTypes && data.advTypes.length > 0) {
+    const defaultTypes = defaultState().advTypes
+    state.advTypes = data.advTypes.map(t => ({
+      ...t,
+      pinned: t.pinned !== undefined ? t.pinned : defaultTypes.find(dt => dt.id === t.id)?.pinned ?? false
+    }))
+  } else {
+    state.advTypes = defaultState().advTypes
+  }
+
+  state.adventures = data.adventures || []
+  state.essays = data.essays || []
+  state.unlockedAchievements = (data.unlockedAchievements || []).map(a => typeof a === 'string' ? { id: a, date: null } : a)
+
+  if (data.vault) {
+    const defaultCats = defaultState().vault.categories
+    const userCats = (data.vault.categories || []).filter(uc => !defaultCats.find(dc => dc.id === uc.id))
+    state.vault.categories = [...defaultCats, ...userCats]
+    const vaultId = 'vc_vault'
+    state.vault.items = (data.vault.items || []).map(item => ({ ...item, catId: item.catId || vaultId }))
+  }
+}
+
 async function load() {
+  // 1. 先加载本地缓存
+  const cached = loadFromCache()
+  if (cached) {
+    applyData(state, cached)
+    cloudLoaded = true // 标记已加载，允许保存
+  }
+
+  // 2. 异步从云端加载并对比
   try {
     const result = await loadData('default')
-    // 如果成功且有数据，加载数据；如果是 404（第一次使用），使用默认值
     if (result.success && result.data) {
       cloudLoaded = true
-      Object.assign(state, defaultState(), result.data)
-      state.hero = Object.assign(defaultState().hero, result.data.hero || {})
-      state.hero.coin = result.data.hero?.coin || 0
-      state.hero.realMoney = result.data.hero?.realMoney || 0
-      state.hero.purchasedItems = result.data.hero?.purchasedItems || []
-      state.hero.purchaseHistory = result.data.hero?.purchaseHistory || []
-      
-      // 合并 advTypes，保留默认的 pinned 状态
-      if (result.data.advTypes && result.data.advTypes.length > 0) {
-        const defaultTypes = defaultState().advTypes
-        state.advTypes = result.data.advTypes.map(t => ({
-          ...t,
-          pinned: t.pinned !== undefined ? t.pinned : defaultTypes.find(dt => dt.id === t.id)?.pinned ?? false
-        }))
+      // 对比云端数据和当前数据的更新时间，云端更新则覆盖
+      const cloudTs = result.data._ts || 0
+      const localTs = cached?._ts || 0
+      if (cloudTs >= localTs) {
+        applyData(state, result.data)
+        saveToCache(result.data)
+        console.log('Loaded from cloud (newer)')
       } else {
-        state.advTypes = defaultState().advTypes
+        console.log('Local cache is newer, skip cloud data')
       }
-      
-      state.adventures = result.data.adventures || []
-      state.essays = result.data.essays || []
-      // 迁移旧数据：字符串数组 → 对象数组
-      state.unlockedAchievements = (result.data.unlockedAchievements || []).map(a => typeof a === 'string' ? { id: a, date: null } : a)
-      if (result.data.vault) {
-        // 合并 vault 数据：保留默认的 locked 分类，新增用户的自定义分类
-        const defaultCats = defaultState().vault.categories
-        const userCats = (result.data.vault.categories || []).filter(uc => !defaultCats.find(dc => dc.id === uc.id))
-        state.vault.categories = [...defaultCats, ...userCats]
-        // 迁移旧数据：所有项目默认归属全部分类
-        const vaultId = 'vc_vault'
-        state.vault.items = (result.data.vault.items || []).map(item => ({ ...item, catId: item.catId || vaultId }))
-      }
-      console.log('Loaded from cloud')
     } else if (result.error === 'Unauthorized') {
-      console.log('未登录，使用默认数据')
+      console.log('未登录，使用缓存数据')
     } else {
-      // 404 或其他情况，使用默认值
-      console.log('云端无数据，使用默认值')
+      console.log('云端无数据')
     }
   } catch (e) {
     console.error('Load from cloud failed:', e)
@@ -251,16 +298,19 @@ async function save() {
     console.log('Skip save: cloud data not loaded yet')
     return
   }
+  const data = {
+    hero: state.hero,
+    advTypes: state.advTypes,
+    adventures: state.adventures,
+    essays: state.essays,
+    unlockedAchievements: state.unlockedAchievements,
+    vault: state.vault,
+    theme: state.theme,
+    _ts: Date.now()
+  }
+  saveToCache(data)
   try {
-    await saveData('default', {
-      hero: state.hero,
-      advTypes: state.advTypes,
-      adventures: state.adventures,
-      essays: state.essays,
-      unlockedAchievements: state.unlockedAchievements,
-      vault: state.vault,
-      theme: state.theme
-    })
+    await saveData('default', data)
   } catch (e) {
     console.error('Save to cloud failed:', e)
   }
