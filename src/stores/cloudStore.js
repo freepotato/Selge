@@ -159,7 +159,12 @@ const state = reactive(defaultState())
 
 // 立即保存到云端（用户操作时调用）
 // 可选的 onSuccess 回调用于显示提示
+// 只有在云端数据加载成功后才能上传，防止默认值覆盖云端数据
 function autoSave(onSuccess) {
+  if (!cloudLoaded) {
+    console.log('Skip save: cloud data not loaded yet')
+    return
+  }
   try {
     saveData('default', {
       hero: state.hero,
@@ -180,11 +185,14 @@ function autoSave(onSuccess) {
 }
 
 // Load from cloud
+let cloudLoaded = false
+
 async function load() {
   try {
     const result = await loadData('default')
     // 如果成功且有数据，加载数据；如果是 404（第一次使用），使用默认值
     if (result.success && result.data) {
+      cloudLoaded = true
       Object.assign(state, defaultState(), result.data)
       state.hero = Object.assign(defaultState().hero, result.data.hero || {})
       state.hero.coin = result.data.hero?.coin || 0
@@ -220,6 +228,10 @@ async function load() {
 
 // Save to cloud immediately
 async function save() {
+  if (!cloudLoaded) {
+    console.log('Skip save: cloud data not loaded yet')
+    return
+  }
   try {
     await saveData('default', {
       hero: state.hero,

@@ -31,10 +31,7 @@ const advTypeOpen = ref(false)
 const themeOpen = ref(false)
 
 function login() {
-  // 访问受 Cloudflare Access 保护的 API
-  // Access 会自动拦截并显示登录页
-  // 登录成功后会重定向回这个页面
-  window.location.href = '/api/me'
+  window.location.href = '/login/'
 }
 
 function showLogoutConfirm() {
@@ -55,27 +52,8 @@ function logout() {
   window.location.href = '/cdn-cgi/access/logout'
 }
 
-// 页面加载时检查是否从登录返回
+// 页面加载时
 onMounted(async () => {
-  // 检查是否在 /api/* 路径
-  if (window.location.pathname.startsWith('/api/')) {
-    try {
-      const res = await fetch('/api/me', {
-        credentials: 'include'
-      })
-      const data = await res.json()
-      if (data.authenticated) {
-        // 已登录，重定向回主页
-        window.location.href = '/'
-        return
-      }
-    } catch (e) {
-      console.error('检查登录状态失败:', e)
-    }
-    // 如果到这里说明未登录或出错，保持在当前页面让 Access 处理
-    return
-  }
-  
   // 获取用户信息
   try {
     const me = await getMe()
@@ -105,7 +83,6 @@ function applyTheme(t) {
   if (t === 'light') html.setAttribute('data-theme', 'light')
   else if (t === 'dark') html.setAttribute('data-theme', 'dark')
   else html.setAttribute('data-theme', window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-  saveWithToast()
 }
 
 function toggleTheme() {
@@ -119,6 +96,7 @@ function toggleTheme() {
   // 在 light 和 dark 之间切换
   const nextTheme = currentTheme === 'dark' ? 'light' : 'dark'
   applyTheme(nextTheme)
+  saveWithToast()
 }
 
 function switchPage(name) { currentPage.value = name }
