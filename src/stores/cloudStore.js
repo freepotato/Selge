@@ -259,6 +259,14 @@ function applyData(state, data) {
   }
 }
 
+function applyTheme(t) {
+  state.theme = t
+  const html = document.documentElement
+  if (t === 'light') html.setAttribute('data-theme', 'light')
+  else if (t === 'dark') html.setAttribute('data-theme', 'dark')
+  else html.setAttribute('data-theme', window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+}
+
 async function load() {
   // 1. 先加载本地缓存
   const cached = loadFromCache()
@@ -328,6 +336,7 @@ export function useStore() {
     DAILY_QUOTES,
     load,
     save,
+    applyTheme,
     autoSave,
     uid,
     today,
