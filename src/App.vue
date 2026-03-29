@@ -159,13 +159,16 @@ onMounted(async () => {
     const me = await getMe()
     user.value = me
     if (me.authenticated) {
-      // 已登录，从云端加载数据
+      // 已登录，从云端加载数据（会先读取 localStorage 缓存）
       await load()
     }
   } catch (e) {
     console.error('获取用户信息失败:', e)
   }
-  
+
+  // 数据加载完成，显示界面
+  document.getElementById('app')?.classList.add('ready')
+
   applyTheme(state.theme)
   if (state.advTypes.length > 0) newAdvType.value = state.advTypes[0].id
 
