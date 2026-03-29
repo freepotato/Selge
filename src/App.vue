@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { marked } from 'marked'
 import JSZip from 'jszip'
 import { useStore } from './stores/cloudStore.js'
@@ -168,6 +168,16 @@ onMounted(async () => {
     }
   })
 })
+
+// 全局键盘事件 - 图片查看器
+function handleKeydown(e) {
+  if (vaultViewerIdx.value === null) return
+  if (e.key === 'ArrowLeft') { prevVaultImg(); e.preventDefault() }
+  else if (e.key === 'ArrowRight') { nextVaultImg(); e.preventDefault() }
+  else if (e.key === 'Escape') { closeVaultViewer(); e.preventDefault() }
+}
+onMounted(() => { document.addEventListener('keydown', handleKeydown) })
+onBeforeUnmount(() => { document.removeEventListener('keydown', handleKeydown) })
 
 function applyTheme(t) {
   state.theme = t
@@ -1244,7 +1254,7 @@ function clearData() {
   </div>
 
   <!-- 图片查看器 -->
-  <div v-if="vaultViewerIdx !== null && vaultDetailItem?.images?.length" class="vault-viewer-overlay" @click.self="closeVaultViewer" @keydown.left="prevVaultImg" @keydown.right="nextVaultImg" @keydown.escape="closeVaultViewer">
+  <div v-if="vaultViewerIdx !== null && vaultDetailItem?.images?.length" class="vault-viewer-overlay" @click.self="closeVaultViewer">
     <div class="vault-viewer">
       <div class="vault-viewer-hd">
         <span class="vault-viewer-title">{{ vaultDetailItem.name || '未命名' }} - {{ vaultViewerIdx + 1 }} / {{ vaultDetailItem.images.length }}</span>
