@@ -597,9 +597,9 @@ function showAbout() {
     title: '🌿 关于 Selge',
     body: `<div style="font-size:12px;line-height:1.9;color:var(--t2)">
 <p style="margin-bottom:16px">有一天我像往常一样闲来无事打开游戏，玩了一会儿之后突然觉得内心无比空虚。我想，我不能再这样了。</p>
-<p style="margin-bottom:16px">我搜索了大量的资料，发现这可以归纳为一种简单而确定的模式：我们花费很少的精力，就能获取很大的满足，它是一个安全而且确定的奖励机制。但是这个奖励机制只能让我们沉迷于对我们的人生并无裨益的事情中，所以，我开始尝试创建一套属于我的人生的奖励机制。</p>
-<p style="margin-bottom:16px">通过跟AI反复辩论，我明白了我要做的东西：一个Life RPG模拟器。幸运的是，网上已经有类似的产品，可惜不幸的是，它们要么没有我想要的功能，要么收费极贵（Youtube上几十万播放的一个notion life rpg模板，基础版就要收费69美刀）。于是，Selge应运而生：一个基于Cloudflare Pages搭建的开源Life RPG模拟器。</p>
-<p style="margin-bottom:16px">过去无数个瞬间我都在想，假如我的人生是个游戏就好了，我猜你也这么想过。现在，不再想象，让我们付诸实践吧——路，就在脚下。</p>
+<p style="margin-bottom:16px">我搜索了大量的资料，发现这可以归纳为一种简单而确定的模式：我们花费很少的精力，就能从游戏、短视频等现代产物中获取很大的满足，它是一个安全而且确定的奖励机制。但是这个奖励机制只能让我们沉迷于对我们的人生并无裨益的事情中，并不会产生现实成长。于是，我开始尝试创建一套属于我的人生的奖励机制。</p>
+<p style="margin-bottom:16px">通过跟AI反复辩论，我明白了我要做的东西：一个Life RPG模拟器。幸运的是，网上已经有类似的产品，可惜不幸的是，它们要么没有我想要的功能，要么收费极贵（Youtube上几十万播放的一个notion life rpg模板，基础版就要收费69美刀）。于是，Selge应运而生：一个基于Vue，用Cloudflare Pages搭建的开源Life RPG模拟器。</p>
+<p style="margin-bottom:16px">过去无数个瞬间我都在想，假如我的人生是个游戏就好了，我猜你也这么想过。<strong>现在，不再想象，让我们付诸实践吧——路，就在脚下。</strong></p>
 <hr style="border:none;border-top:1px solid var(--bd);margin:20px 0">
 <p style="font-size:12px;color:var(--t3)">Contact me:</p>
 <p>Email: <a href="mailto:FlorianChen9@outlook.com">FlorianChen9@outlook.com</a></p>
@@ -1172,7 +1172,7 @@ function clearData() {
     <div class="wrap">
       <!-- ===== 列表页 ===== -->
       <template v-if="!vaultDetailId">
-        <div class="mb24"><div class="page-title">仓库</div><div class="page-sub">存放你的文件</div></div>
+        <div class="mb24"><div class="page-title">仓库</div><div class="page-sub">存放你时常回顾的图片</div></div>
         <!-- 分类切换 -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
           <button v-for="cat in state.vault.categories" :key="cat.id" class="hm-range-btn" :class="{ active: vaultCat === cat.id }" @click="vaultCat = cat.id; vaultPage = 1">
