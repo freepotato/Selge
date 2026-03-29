@@ -1256,17 +1256,10 @@ function clearData() {
   <!-- 图片查看器 -->
   <div v-if="vaultViewerIdx !== null && vaultDetailItem?.images?.length" class="vault-viewer-overlay" @click.self="closeVaultViewer">
     <div class="vault-viewer">
-      <div class="vault-viewer-hd">
-        <span class="vault-viewer-title">{{ vaultDetailItem.name || '未命名' }} - {{ vaultViewerIdx + 1 }} / {{ vaultDetailItem.images.length }}</span>
-        <button class="vault-viewer-close" @click="closeVaultViewer">✕</button>
-      </div>
-      <div class="vault-viewer-body">
-        <button v-if="vaultViewerIdx > 0" class="vault-viewer-nav vault-viewer-prev" @click="prevVaultImg">‹</button>
-        <div class="vault-viewer-img-wrap">
-          <img :src="vaultDetailItem.images[vaultViewerIdx]" class="vault-viewer-img" />
-        </div>
-        <button v-if="vaultViewerIdx < vaultDetailItem.images.length - 1" class="vault-viewer-nav vault-viewer-next" @click="nextVaultImg">›</button>
-      </div>
+      <button class="vault-viewer-close" @click="closeVaultViewer">✕</button>
+      <button v-if="vaultViewerIdx > 0" class="vault-viewer-nav vault-viewer-prev" @click="prevVaultImg">‹</button>
+      <img :src="vaultDetailItem.images[vaultViewerIdx]" class="vault-viewer-img" />
+      <button v-if="vaultViewerIdx < vaultDetailItem.images.length - 1" class="vault-viewer-nav vault-viewer-next" @click="nextVaultImg">›</button>
     </div>
   </div>
 
