@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { marked } from 'marked'
 import JSZip from 'jszip'
 import { useStore } from './stores/cloudStore.js'
-import { getMe, loadData, saveData, uploadImage } from './utils/authApi.js'
+import { getMe, loadData, saveData, uploadImage, getSignedUrl, getSignedUrls } from './utils/authApi.js'
 import TiptapEditor from './components/TiptapEditor.vue'
 
 const { state, XP_TABLE, XP_ESSAY, MOODS, ACHIEVEMENTS, COIN_SVG, COIN_ITEMS, DAILY_QUOTES, load, save, autoSave, uid, today, fmtDate, randInt, getLevel, getLevelTitle, getAdvCounts } = useStore()
@@ -38,6 +38,7 @@ const vaultPage = ref(1)
 const vaultPerPage = 8
 const vaultDetailId = ref(null)
 const vaultViewerIdx = ref(null)
+const vaultImgUrls = ref({}) // path → signed URL
 const vaultAddCatShow = ref(false)
 const vaultNewCatName = ref('')
 const vaultUploadingId = ref(null)
@@ -114,8 +115,17 @@ function triggerVaultUpload(itemId) {
     for (const file of files) {
       try {
         const result = await uploadImage(file, `vault/${itemId}`)
-        if (result.success && result.url) { item.images.push(result.url); uploaded++ }
-        else { showToast(`上传失败: ${file.name}`, 'red') }
+        // 新版：result.path 是 R2 对象路径，不是完整 URL
+        if (result.success && result.path) {
+          item.images.push(result.path)
+          // 立即获取签名 URL 并缓存
+          getCachedSignedUrl(result.path).then(url => {
+            if (url) vaultImgUrls.value = { ...vaultImgUrls.value, [result.path]: url }
+          })
+          uploaded++
+        } else {
+          showToast(`上传失败: ${file.name}`, 'red')
+        }
       } catch (err) {
         console.error('Upload failed:', err)
         showToast(`上传失败: ${file.name}`, 'red')
@@ -212,7 +222,17 @@ function toggleTheme() {
   saveWithToast()
 }
 
-function switchPage(name) { currentPage.value = name }
+function switchPage(name) {
+  currentPage.value = name
+  // 进入仓库页面时预热签名 URL
+  if (name === 'vault') {
+    const allPaths = state.vault.items.flatMap(i => (i.images || []).map(img => {
+      if (img.startsWith && img.startsWith('http')) return null
+      return img
+    })).filter(Boolean)
+    warmSignedUrls(allPaths)
+  }
+}
 
 function toggleAdvTypeDropdown() { 
   advTypeOpen.value = !advTypeOpen.value
@@ -394,7 +414,74 @@ function deleteAdventure(a) {
 }
 
 // Vault functions
+// 旧 R2 域名（仅用于迁移：检测旧格式 URL 并提取 path）
 const R2_URL = 'https://pub-6cfc9e286538487c9b53729cec446578.r2.dev'
+
+// 预签名 URL 缓存（path → url），60 分钟有效期
+const signedUrlCache = new Map()
+const _signQueue = new Map()
+const CACHE_TTL_MS = 50 * 60 * 1000
+
+async function getCachedSignedUrl(path) {
+  if (!path) return null
+  // 旧格式 URL 直接返回
+  if (path.startsWith('http')) return path
+  const cached = signedUrlCache.get(path)
+  if (cached && cached.expiresAt > Date.now()) return cached.url
+  if (_signQueue.has(path)) return _signQueue.get(path)
+  const promise = (async () => {
+    const res = await fetch(`/api/images/sign?path=${encodeURIComponent(path)}&expires=3600`)
+    if (!res.ok) return null
+    const { url } = await res.json()
+    if (url) signedUrlCache.set(path, { url, expiresAt: Date.now() + CACHE_TTL_MS })
+    return url
+  })()
+  _signQueue.set(path, promise)
+  const result = await promise
+  _signQueue.delete(path)
+  return result
+}
+
+// 批量预热签名 URL
+async function warmSignedUrls(paths) {
+  const unique = [...new Set(paths.filter(p => p && !p.startsWith('http')))]
+  if (!unique.length) return
+  const res = await fetch('/api/images/sign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paths: unique, expiresIn: 3600 })
+  })
+  if (res.ok) {
+    const { results } = await res.json()
+    for (const { path, url } of results) {
+      if (url) signedUrlCache.set(path, { url, expiresAt: Date.now() + CACHE_TTL_MS })
+    }
+  }
+}
+
+// 把 vault item.images 里的值规范化为 path（用于兼容旧数据）
+function toVaultPath(value) {
+  if (!value) return null
+  if (typeof value === 'string' && value.startsWith('http')) {
+    if (value.startsWith(R2_URL)) return value.slice(R2_URL.length + 1)
+    return null
+  }
+  return value
+}
+
+// 从 path 获取展示用的 URL（签名或旧 URL）
+async function getVaultImgUrl(path) {
+  if (!path) return null
+  if (path.startsWith('http')) return path
+  return await getCachedSignedUrl(path)
+}
+
+// 同步获取 vault 图片 URL（返回缓存值，触发异步预加载）
+function vaultUrl(path) {
+  if (!path) return null
+  if (path.startsWith('http')) return path // 旧数据
+  return vaultImgUrls.value[path] || null // null 表示加载中
+}
 
 function addVaultCat() {
   const name = vaultNewCatName.value.trim()
@@ -1205,7 +1292,7 @@ function clearData() {
           <div v-else class="vault-grid">
             <div v-for="item in vaultPagedItems" :key="item.id" class="vault-card" @click="vaultDetailId = item.id">
               <div class="vault-card-cover">
-                <img v-if="(item.images || []).length" :src="item.images[0]" class="vault-card-img" loading="lazy" />
+                <img v-if="(item.images || []).length" :src="vaultUrl(item.images[0])" class="vault-card-img" loading="lazy" />
                 <div v-else class="vault-card-empty">📂</div>
               </div>
               <div class="vault-card-info">
@@ -1251,7 +1338,7 @@ function clearData() {
           <div v-if="!vaultDetailItem?.images?.length" class="empty" style="padding-top:24px"><div class="empty-icon">📷</div>暂无图片</div>
           <div v-else class="vault-detail-imgs">
             <div v-for="(img, idx) in vaultDetailItem.images" :key="idx" class="vault-detail-img-wrap">
-              <img :src="img" class="vault-detail-img" loading="lazy" @click="openVaultViewer(idx)" />
+              <img :src="vaultUrl(img)" class="vault-detail-img" loading="lazy" @click="openVaultViewer(idx)" />
               <button class="vault-img-del" @click="removeVaultImage(vaultDetailItem, idx)">✕</button>
             </div>
           </div>
@@ -1268,7 +1355,7 @@ function clearData() {
   <div v-if="vaultViewerIdx !== null && vaultDetailItem?.images?.length" class="vault-viewer-overlay" @click.self="closeVaultViewer"
     @touchstart="viewerTouchStart" @touchend="viewerTouchEnd">
     <button class="vault-viewer-close" @click="closeVaultViewer">✕</button>
-    <img :src="vaultDetailItem.images[vaultViewerIdx]" class="vault-viewer-img" />
+    <img :src="vaultUrl(vaultDetailItem.images[vaultViewerIdx])" class="vault-viewer-img" />
   </div>
 
   <!-- Settings Page -->

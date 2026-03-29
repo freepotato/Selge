@@ -31,14 +31,12 @@ export async function onRequestPost(context) {
 
     await r2.put(path, file.stream(), {
       httpMetadata: {
-        contentType: file.type || 'image/png'
+        contentType: file.type || 'image/png',
+        cacheControl: 'public, max-age=31536000, immutable'
       }
     })
 
-    const publicUrl = 'https://pub-6cfc9e286538487c9b53729cec446578.r2.dev'
-    const url = `${publicUrl}/${path}`
-
-    return new Response(JSON.stringify({ success: true, url, path }), {
+    return new Response(JSON.stringify({ success: true, path }), {
       headers: { 'Content-Type': 'application/json' }
     })
   } catch (e) {
