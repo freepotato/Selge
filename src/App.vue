@@ -37,14 +37,23 @@ const vaultCat = ref('vc_vault')
 const vaultPage = ref(1)
 const vaultPerPage = 8
 const vaultDetailId = ref(null)
-const vaultViewer = ref(null)
-const vaultViewerIdx = ref(0)
-const vaultViewItem = ref(null)
+const vaultViewerIdx = ref(null)
 const vaultAddCatShow = ref(false)
 const vaultNewCatName = ref('')
 const vaultUploadingId = ref(null)
 
 const vaultDetailItem = computed(() => state.vault.items.find(i => i.id === vaultDetailId.value))
+
+function openVaultViewer(idx) { vaultViewerIdx.value = idx }
+function closeVaultViewer() { vaultViewerIdx.value = null }
+function prevVaultImg() {
+  if (vaultViewerIdx.value === null || !vaultDetailItem.value?.images?.length) return
+  if (vaultViewerIdx.value > 0) vaultViewerIdx.value--
+}
+function nextVaultImg() {
+  if (vaultViewerIdx.value === null || !vaultDetailItem.value?.images?.length) return
+  if (vaultViewerIdx.value < vaultDetailItem.value.images.length - 1) vaultViewerIdx.value++
+}
 
 function toggleVaultCat(catId) {
   if (!vaultDetailItem.value) return
@@ -76,8 +85,6 @@ function deleteVaultItemById() {
     ]
   })
 }
-
-function openVaultViewer(item, idx) { vaultViewer.value = item; vaultViewerIdx.value = idx }
 
 function removeVaultImage(item, idx) {
   item.images.splice(idx, 1)
@@ -1223,7 +1230,7 @@ function clearData() {
           <div v-if="!vaultDetailItem?.images?.length" class="empty" style="padding-top:24px"><div class="empty-icon">📷</div>暂无图片</div>
           <div v-else class="vault-detail-imgs">
             <div v-for="(img, idx) in vaultDetailItem.images" :key="idx" class="vault-detail-img-wrap">
-              <img :src="img" class="vault-detail-img" loading="lazy" @click="window.open(img)" />
+              <img :src="img" class="vault-detail-img" loading="lazy" @click="openVaultViewer(idx)" />
               <button class="vault-img-del" @click="removeVaultImage(vaultDetailItem, idx)">✕</button>
             </div>
           </div>
@@ -1233,6 +1240,23 @@ function clearData() {
           <button class="btn btn-dg btn-sm" @click="deleteVaultItemById">删除项目</button>
         </div>
       </template>
+    </div>
+  </div>
+
+  <!-- 图片查看器 -->
+  <div v-if="vaultViewerIdx !== null && vaultDetailItem?.images?.length" class="vault-viewer-overlay" @click.self="closeVaultViewer" @keydown.left="prevVaultImg" @keydown.right="nextVaultImg" @keydown.escape="closeVaultViewer">
+    <div class="vault-viewer">
+      <div class="vault-viewer-hd">
+        <span class="vault-viewer-title">{{ vaultDetailItem.name || '未命名' }} - {{ vaultViewerIdx + 1 }} / {{ vaultDetailItem.images.length }}</span>
+        <button class="vault-viewer-close" @click="closeVaultViewer">✕</button>
+      </div>
+      <div class="vault-viewer-body">
+        <button v-if="vaultViewerIdx > 0" class="vault-viewer-nav vault-viewer-prev" @click="prevVaultImg">‹</button>
+        <div class="vault-viewer-img-wrap">
+          <img :src="vaultDetailItem.images[vaultViewerIdx]" class="vault-viewer-img" />
+        </div>
+        <button v-if="vaultViewerIdx < vaultDetailItem.images.length - 1" class="vault-viewer-nav vault-viewer-next" @click="nextVaultImg">›</button>
+      </div>
     </div>
   </div>
 
