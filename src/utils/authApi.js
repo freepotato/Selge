@@ -4,7 +4,7 @@ const API_BASE = '/api'
 
 // 获取当前用户信息
 export async function getMe() {
-  const res = await fetch(`${API_BASE}/me`)
+  const res = await fetch(`${API_BASE}/login`, { headers: { 'Accept': 'application/json' } })
   if (res.status === 401) {
     return { authenticated: false }
   }

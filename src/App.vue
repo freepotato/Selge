@@ -31,7 +31,7 @@ const advTypeOpen = ref(false)
 const themeOpen = ref(false)
 
 function login() {
-  window.location.href = '/login/'
+  window.location.href = '/api/login'
 }
 
 function showLogoutConfirm() {
