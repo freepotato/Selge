@@ -1014,10 +1014,8 @@ function clearData() {
           <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--bd)">
             <div style="font-size:12px;color:var(--t3);margin-bottom:10px">添加新历险类型</div>
             <div class="at-add-row">
-              <input class="inp inp-h" v-model="newTypeEmoji" placeholder="🎯" style="width:28px;text-align:center" maxlength="2" />
-              <input class="inp inp-h" v-model="newTypeName" placeholder="类型名称" maxlength="12" style="flex:4;min-width:100px" />
-              <input class="inp inp-h" type="number" v-model.number="newTypeXpMin" placeholder="最小" min="1" style="width:48px;text-align:center" />
-              <input class="inp inp-h" type="number" v-model.number="newTypeXpMax" placeholder="最大" min="1" style="width:48px;text-align:center" />
+              <div class="at-emoji-name-row"><input class="inp inp-h" v-model="newTypeEmoji" placeholder="🎯" maxlength="2" /><input class="inp inp-h" v-model="newTypeName" placeholder="类型名称" maxlength="12" /></div>
+              <div class="at-xp-row"><input class="inp inp-h" type="number" v-model.number="newTypeXpMin" placeholder="最小" min="1" /><input class="inp inp-h" type="number" v-model.number="newTypeXpMax" placeholder="最大" min="1" /></div>
               <button class="btn btn-p btn-sm" @click="addAdvType">添加</button>
             </div>
           </div>
