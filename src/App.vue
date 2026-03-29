@@ -4,6 +4,7 @@ import { marked } from 'marked'
 import JSZip from 'jszip'
 import { useStore } from './stores/cloudStore.js'
 import { getMe, loadData, saveData, uploadImage } from './utils/authApi.js'
+import TiptapEditor from './components/TiptapEditor.vue'
 
 const { state, XP_TABLE, XP_ESSAY, MOODS, ACHIEVEMENTS, COIN_SVG, COIN_ITEMS, DAILY_QUOTES, load, save, autoSave, uid, today, fmtDate, randInt, getLevel, getLevelTitle, getAdvCounts } = useStore()
 
@@ -26,6 +27,11 @@ const newAdvType = ref('at3')
 const newTypeEmoji = ref('')
 const newTypeName = ref('')
 const newTypeXpMin = ref('')
+const advFilterType = ref('all')
+const advPage = ref(1)
+const advPerPage = 10
+const editingAdvId = ref(null)
+const editingAdvTitle = ref('')
 const newTypeXpMax = ref('')
 const advTypeOpen = ref(false)
 const themeOpen = ref(false)
@@ -153,8 +159,8 @@ const coinDisplay = computed(() => COIN_SVG + ' <span style="margin-left:6px"><s
 const sortedAchievements = computed(() => {
   const allAchs = [...ACHIEVEMENTS.read, ...ACHIEVEMENTS.movie, ...ACHIEVEMENTS.guitar, ...ACHIEVEMENTS.walk, ...ACHIEVEMENTS.total]
   // 已解锁的在前，按 id 排序（最新的在前）
-  const unlocked = allAchs.filter(a => state.unlockedAchievements.includes(a.id)).reverse()
-  const locked = allAchs.filter(a => !state.unlockedAchievements.includes(a.id))
+  const unlocked = allAchs.filter(a => isAchievementUnlocked(a.id)).reverse()
+  const locked = allAchs.filter(a => !isAchievementUnlocked(a.id))
   return [...unlocked, ...locked]
 })
 const levelTitle = computed(() => getLevelTitle(currentLevel.value))
@@ -180,7 +186,7 @@ function showQuoteHistory() {
     const dayIdx = (dayOfYear - 1 - i + DAILY_QUOTES.length) % DAILY_QUOTES.length
     const pastDate = new Date(d)
     pastDate.setDate(pastDate.getDate() - i)
-    html += `<div class="quote-item"><div class="quote-item-text">"${DAILY_QUOTES[dayIdx]}"</div><div class="quote-item-date">${pastDate.toISOString().slice(0, 10)}</div></div>`
+    html += `<div class="quote-item"><div class="quote-item-text">"${DAILY_QUOTES[dayIdx]}"</div><div class="quote-item-date">${pastDate.getFullYear()}-${String(pastDate.getMonth()+1).padStart(2,'0')}-${String(pastDate.getDate()).padStart(2,'0')}</div></div>`
   }
   html += '</div>'
   showDialog({ title: '往期每日一句', body: html, actions: [{ label: '关闭', cls: 'btn-g' }] })
@@ -199,7 +205,8 @@ function addAdventure() {
   state.hero.coin += xp
   const tDate = today()
   if (state.hero.lastAdvDate !== tDate) {
-    const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    const yd = new Date(Date.now() - 86400000)
+    const yest = yd.getFullYear() + '-' + String(yd.getMonth()+1).padStart(2,'0') + '-' + String(yd.getDate()).padStart(2,'0')
     state.hero.streak = state.hero.lastAdvDate === yest ? state.hero.streak + 1 : 1
     state.hero.lastAdvDate = tDate
   }
@@ -216,10 +223,66 @@ function checkAchievements() {
   allAchs.forEach(a => {
     const reqKey = a.id.startsWith('r') ? 'read' : a.id.startsWith('m') ? 'movie' : a.id.startsWith('g') ? 'guitar' : a.id.startsWith('w') ? 'walk' : 'total'
     const currentCount = reqKey === 'total' ? state.adventures.length : (counts[reqKey] || 0)
-    if (currentCount >= a.req && !state.unlockedAchievements.includes(a.id)) {
-      state.unlockedAchievements.push(a.id)
+    if (currentCount >= a.req && !isAchievementUnlocked(a.id)) {
+      state.unlockedAchievements.push({ id: a.id, date: today() })
       showToast(`成就解锁：${a.name}`, 'gold', a.icon)
     }
+  })
+}
+
+// 兼容旧数据（字符串数组）和新数据（对象数组）
+function isAchievementUnlocked(aid) {
+  return state.unlockedAchievements.some(a => typeof a === 'string' ? a === aid : a.id === aid)
+}
+
+function getAchievementUnlockDate(aid) {
+  const entry = state.unlockedAchievements.find(a => typeof a === 'string' ? false : a.id === aid)
+  return entry?.date || null
+}
+
+const filteredAdventures = computed(() => {
+  if (advFilterType.value === 'all') return state.adventures
+  return state.adventures.filter(a => a.typeId === advFilterType.value)
+})
+const advTotalPages = computed(() => Math.max(1, Math.ceil(filteredAdventures.value.length / advPerPage)))
+const pagedAdventures = computed(() => {
+  const start = (advPage.value - 1) * advPerPage
+  return filteredAdventures.value.slice(start, start + advPerPage)
+})
+
+function startEditAdv(a) {
+  editingAdvId.value = a.id
+  editingAdvTitle.value = a.title
+}
+function cancelEditAdv() {
+  editingAdvId.value = null
+  editingAdvTitle.value = ''
+}
+function saveEditAdv(a) {
+  const t = editingAdvTitle.value.trim()
+  if (!t) return
+  a.title = t
+  editingAdvId.value = null
+  editingAdvTitle.value = ''
+  saveWithToast()
+  showToast('历险已更新', 'green')
+}
+function deleteAdventure(a) {
+  showDialog({
+    title: '删除历险',
+    body: `确定删除「${a.title}」？`,
+    actions: [
+      { label: '取消', cls: 'btn-g' },
+      { label: '删除', cls: 'btn-dg', fn: () => {
+        state.adventures = state.adventures.filter(x => x.id !== a.id)
+        // 扣除对应的 XP 和金币
+        state.hero.xp = Math.max(0, state.hero.xp - a.xp)
+        state.hero.coin = Math.max(0, state.hero.coin - a.xp)
+        if (advPage.value > advTotalPages.value) advPage.value = advTotalPages.value
+        saveWithToast()
+        showToast('历险已删除', 'green')
+      }}
+    ]
   })
 }
 
@@ -234,6 +297,10 @@ const heatmapData = computed(() => {
   startDate.setDate(startDate.getDate() - startDate.getDay())
   const cols = []
   let cur = new Date(startDate)
+  // 辅助：本地日期转 YYYY-MM-DD（避免 toISOString 的 UTC 偏移）
+  function localDateStr(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+  }
   while (cur <= todayD) {
     const col = []
     for (let d = 0; d < 7; d++) { col.push(new Date(cur)); cur.setDate(cur.getDate() + 1) }
@@ -241,7 +308,7 @@ const heatmapData = computed(() => {
   }
   const maxC = Math.max(1, ...Object.values(countMap))
   function lv(n) { if (!n) return 0; if (n <= maxC * .25) return 1; if (n <= maxC * .5) return 2; if (n <= maxC * .75) return 3; return 4 }
-  return { cols, countMap, lv, todayD }
+  return { cols, countMap, lv, todayD, localDateStr }
 })
 
 const recentActivity = computed(() => {
@@ -442,6 +509,23 @@ tags: ${JSON.stringify(e.tags || [])}
   showToast(`已导出 ${state.essays.filter(e => e.submitted).length} 篇随笔`, 'green', '📝')
 }
 
+function exportSingleEssay(e) {
+  const frontmatter = `---
+id: ${e.id}
+title: "${(e.title || '无题').replace(/"/g, '\\"')}"
+date: ${e.date}
+mood: ${e.mood}
+tags: ${JSON.stringify(e.tags || [])}
+---
+`
+  const blob = new Blob([frontmatter + (e.content || '')], { type: 'text/markdown' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `${e.date}-${(e.title || '无题').replace(/[\\/:*?"<>|]/g, '').substring(0, 30)}.md`
+  a.click()
+  showToast('已导出随笔', 'green', '📝')
+}
+
 function triggerImport() {
   const input = document.createElement('input')
   input.type = 'file'
@@ -473,7 +557,11 @@ function triggerImport() {
                 const newEssays = p.essays.filter(e => !existingEssays.has(e.id))
                 state.essays = [...state.essays, ...newEssays]
               }
-              if (p.unlockedAchievements) state.unlockedAchievements = [...new Set([...state.unlockedAchievements, ...p.unlockedAchievements])]
+              if (p.unlockedAchievements) {
+                const existingIds = new Set(state.unlockedAchievements.map(a => typeof a === 'string' ? a : a.id))
+                const newAchs = (p.unlockedAchievements || []).map(a => typeof a === 'string' ? { id: a, date: null } : a).filter(a => !existingIds.has(a.id))
+                state.unlockedAchievements = [...state.unlockedAchievements, ...newAchs]
+              }
               if (p.theme) state.theme = p.theme
               saveWithToast()
               showToast(`已导入 ${newAdvs.length} 条历险、${newEssays.length} 篇随笔`, 'green', '📥')
@@ -732,7 +820,7 @@ function clearData() {
                   <div class="hm-wd"></div><div class="hm-wd">一</div><div class="hm-wd"></div><div class="hm-wd">三</div><div class="hm-wd"></div><div class="hm-wd">五</div><div class="hm-wd"></div>
                 </div>
                 <div v-for="(col, i) in heatmapData.cols" :key="i" class="hm-col">
-                  <div v-for="(d, j) in col" :key="j" class="hm-cell" :data-l="heatmapData.lv(heatmapData.countMap[d.toISOString().slice(0, 10)] || 0)" :data-tip="(heatmapData.countMap[d.toISOString().slice(0, 10)] || 0) + ' 次历险 · ' + d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })" :style="{ opacity: d > heatmapData.todayD ? 0.3 : 1 }"></div>
+                  <div v-for="(d, j) in col" :key="j" class="hm-cell" :data-l="heatmapData.lv(heatmapData.countMap[heatmapData.localDateStr(d)] || 0)" :data-tip="(heatmapData.countMap[heatmapData.localDateStr(d)] || 0) + ' 次历险 · ' + d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })" :style="{ opacity: d > heatmapData.todayD ? 0.3 : 1 }"></div>
                 </div>
               </div>
             </div>
@@ -775,12 +863,37 @@ function clearData() {
         <button class="btn btn-p" style="flex-shrink:0;white-space:nowrap" @click="addAdventure">记录</button>
       </div>
       <div class="card cp">
-        <div style="padding-bottom:12px;border-bottom:1px solid var(--bd)"><span style="font-size:12px;color:var(--t3);font-family:monospace">{{ state.adventures.length }} 次</span></div>
-        <div v-if="!state.adventures.length" class="empty" style="padding-top:24px"><div class="empty-icon">🗺️</div>还没有历险记录</div>
+        <div style="padding-bottom:12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="hm-range-btn" :class="{ active: advFilterType === 'all' }" @click="advFilterType = 'all'; advPage = 1">全部</button>
+            <button v-for="t in state.advTypes" :key="t.id" class="hm-range-btn" :class="{ active: advFilterType === t.id }" @click="advFilterType = t.id; advPage = 1">{{ t.emoji }} {{ t.name }}</button>
+          </div>
+          <span style="font-size:12px;color:var(--t3);font-family:monospace">{{ filteredAdventures.length }} 次</span>
+        </div>
+        <div v-if="!filteredAdventures.length" class="empty" style="padding-top:24px"><div class="empty-icon">🗺️</div>没有匹配的历险记录</div>
         <div v-else style="padding-top:12px">
-          <div v-for="a in state.adventures.slice(0, 50)" :key="a.id" class="adv-item">
+          <div v-for="a in pagedAdventures" :key="a.id" class="adv-item">
             <span class="adv-badge">{{ state.advTypes.find(t => t.id === a.typeId)?.emoji || '📌' }} {{ state.advTypes.find(t => t.id === a.typeId)?.name || '历险' }}</span>
-            <div class="adv-content"><div class="adv-title">{{ a.title }}</div><div class="adv-meta"><span>{{ fmtDate(a.date) }}</span><span class="adv-xp">+{{ a.xp }} XP</span></div></div>
+            <div class="adv-content">
+              <div v-if="editingAdvId === a.id" class="adv-edit-row">
+                <input class="inp inp-h" v-model="editingAdvTitle" style="flex:1;min-width:100px" @keydown.enter="saveEditAdv(a)" @keydown.escape="cancelEditAdv" />
+                <button class="btn btn-p btn-sm" style="flex-shrink:0" @click="saveEditAdv(a)">✓</button>
+                <button class="btn btn-g btn-sm" style="flex-shrink:0" @click="cancelEditAdv">✕</button>
+              </div>
+              <div v-else>
+                <div class="adv-title">{{ a.title }}</div>
+                <div class="adv-meta"><span>{{ fmtDate(a.date) }}</span><span class="adv-xp">+{{ a.xp }} XP</span></div>
+              </div>
+            </div>
+            <div v-if="editingAdvId !== a.id" class="adv-actions">
+              <button class="adv-act-btn" @click="startEditAdv(a)" title="编辑">✏️</button>
+              <button class="adv-act-btn" @click="deleteAdventure(a)" title="删除">🗑️</button>
+            </div>
+          </div>
+          <div v-if="advTotalPages > 1" class="adv-pagination">
+            <button class="btn btn-g btn-sm" :disabled="advPage <= 1" @click="advPage--">上一页</button>
+            <span style="font-size:12px;color:var(--t3)">{{ advPage }} / {{ advTotalPages }}</span>
+            <button class="btn btn-g btn-sm" :disabled="advPage >= advTotalPages" @click="advPage++">下一页</button>
           </div>
         </div>
       </div>
@@ -804,7 +917,10 @@ function clearData() {
         <div>
           <div v-if="!currentEssay" class="card" style="text-align:center;color:var(--t4);padding:60px 20px"><div style="font-size:32px;margin-bottom:10px">📖</div><div>选择一篇随笔，或新建一篇</div></div>
           <div v-else-if="currentEssay.submitted" class="card cp">
-            <div class="essay-view-title">{{ currentEssay.title || '无题' }}</div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+              <div class="essay-view-title">{{ currentEssay.title || '无题' }}</div>
+              <button class="btn btn-g btn-sm" @click="exportSingleEssay(currentEssay)" style="flex-shrink:0">📥 导出</button>
+            </div>
             <div class="essay-view-meta"><span>{{ currentEssay.mood }}</span><span>{{ fmtDate(currentEssay.date) }}</span><span>{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字</span></div>
             <div class="md-body" v-html="marked.parse(currentEssay.content || '')"></div>
           </div>
@@ -823,7 +939,7 @@ function clearData() {
                 </div>
               </div>
             </div>
-            <textarea class="essay-ta" v-model="currentEssay.content" placeholder="支持 Markdown 语法…" @blur="saveWithToast"></textarea>
+            <TiptapEditor v-model="currentEssay.content" placeholder="支持 Markdown 语法…" @blur="saveWithToast" />
             <div class="fb" style="margin-top:10px"><span style="font-size:11px;color:var(--t4);font-family:monospace">{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字 · 提交后不可修改</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" @click="deleteEssay">删除草稿</button><button class="btn btn-p btn-sm" @click="submitEssay">提交随笔</button></div></div>
           </div>
         </div>
@@ -844,10 +960,10 @@ function clearData() {
         <button class="ach-tab" :class="{ active: achFilter === 'guitar' }" @click="achFilter = 'guitar'">指弹</button>
       </div>
       <div class="ach-grid">
-        <div v-for="a in (achFilter === 'all' ? sortedAchievements : ACHIEVEMENTS[achFilter] || [])" :key="a.id" class="ach-card" :class="{ unlocked: state.unlockedAchievements.includes(a.id), locked: !state.unlockedAchievements.includes(a.id) }">
+        <div v-for="a in (achFilter === 'all' ? sortedAchievements : ACHIEVEMENTS[achFilter] || [])" :key="a.id" class="ach-card" :class="{ unlocked: isAchievementUnlocked(a.id), locked: !isAchievementUnlocked(a.id) }">
           <div class="ach-shine"></div><div class="ach-icon">{{ a.icon }}</div><div class="ach-name">{{ a.name }}</div><div class="ach-desc">{{ a.desc }}</div>
           <div class="ach-progress"><div class="ach-progress-bar"><div class="ach-progress-fill" :style="{ width: Math.min(100, ((a.id.startsWith('r') ? getAdvCounts(state).read : a.id.startsWith('m') ? getAdvCounts(state).movie : a.id.startsWith('g') ? getAdvCounts(state).guitar : a.id.startsWith('w') ? getAdvCounts(state).walk : state.adventures.length) || 0) / a.req * 100) + '%' }"></div></div><div class="ach-progress-text">{{ (a.id.startsWith('r') ? getAdvCounts(state).read : a.id.startsWith('m') ? getAdvCounts(state).movie : a.id.startsWith('g') ? getAdvCounts(state).guitar : a.id.startsWith('w') ? getAdvCounts(state).walk : state.adventures.length) || 0 }}/{{ a.req }}</div></div>
-          <div v-if="state.unlockedAchievements.includes(a.id)" class="ach-unlock-date">✓ 已解锁</div>
+          <div v-if="isAchievementUnlocked(a.id)" class="ach-unlock-date">✓ {{ getAchievementUnlockDate(a.id) ? fmtDate(getAchievementUnlockDate(a.id)) : '已解锁' }}</div>
         </div>
       </div>
     </div>
@@ -941,6 +1057,5 @@ function clearData() {
 </template>
 
 <style>
-.btn-dg { background: #c0392b !important; color: #fff !important; }
 .shop-card-btn {justify-content: center; align-items: center; }
 </style>

@@ -112,7 +112,8 @@ function uid() {
 }
 
 function today() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
 }
 
 function fmtDate(iso) {
@@ -213,7 +214,8 @@ async function load() {
       
       state.adventures = result.data.adventures || []
       state.essays = result.data.essays || []
-      state.unlockedAchievements = result.data.unlockedAchievements || []
+      // 迁移旧数据：字符串数组 → 对象数组
+      state.unlockedAchievements = (result.data.unlockedAchievements || []).map(a => typeof a === 'string' ? { id: a, date: null } : a)
       console.log('Loaded from cloud')
     } else if (result.error === 'Unauthorized') {
       console.log('未登录，使用默认数据')
