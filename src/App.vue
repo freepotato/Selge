@@ -12,7 +12,7 @@ import ShopPage from './pages/ShopPage.vue'
 import VaultPage from './pages/VaultPage.vue'
 import SettingsPage from './pages/SettingsPage.vue'
 
-const { state, save, autoSave } = useStore()
+const { state, save, autoSave, load } = useStore()
 
 // 用户认证状态
 const user = ref({ authenticated: false, username: 'Guest' })
@@ -56,6 +56,8 @@ onMounted(async () => {
     if (me.authenticated) {
       // 已登录，从云端加载数据（会先读取 localStorage 缓存）
       await load()
+      // 加载完成后，确保 cloudLoaded 为 true，允许保存数据
+      console.log('Login successful, data loaded from cloud')
     }
   } catch (e) {
     console.error('获取用户信息失败:', e)
