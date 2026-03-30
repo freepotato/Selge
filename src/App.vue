@@ -11,6 +11,7 @@ import AchievementsPage from './pages/AchievementsPage.vue'
 import ShopPage from './pages/ShopPage.vue'
 import VaultPage from './pages/VaultPage.vue'
 import SettingsPage from './pages/SettingsPage.vue'
+import { PhSun, PhUser, PhUserCircle } from '@phosphor-icons/vue'
 
 
 
@@ -176,15 +177,15 @@ function handleShowDialog(opts) {
         <button class="nav-tab" :class="{ active: currentPage === 'character' }" @click="switchPage('character')">主页</button>
         <button class="nav-tab" :class="{ active: currentPage === 'adventure' }" @click="switchPage('adventure')">历险</button>
         <button class="nav-tab" :class="{ active: currentPage === 'essays' }" @click="switchPage('essays')">随笔</button>
-        <button class="nav-tab" :class="{ active: currentPage === 'achievements' }" @click="switchPage('achievements')">成就</button>
-        <button class="nav-tab" :class="{ active: currentPage === 'shop' }" @click="switchPage('shop')">商店</button>
         <button class="nav-tab" :class="{ active: currentPage === 'vault' }" @click="switchPage('vault')">仓库</button>
+        <button class="nav-tab" :class="{ active: currentPage === 'shop' }" @click="switchPage('shop')">商店</button>
+        <button class="nav-tab" :class="{ active: currentPage === 'achievements' }" @click="switchPage('achievements')">成就</button>
         <button class="nav-tab" :class="{ active: currentPage === 'settings' }" @click="switchPage('settings')">设置</button>
       </div>
       <div class="nav-right">
         <button v-if="user.authenticated" class="user-btn" @click="showLogoutConfirm">{{ state.hero.name || user.username }}</button>
-        <button v-else class="btn btn-p btn-sm" @click="login">🔐 登录</button>
-        <button class="theme-btn" @click="toggleTheme">🌓</button>
+        <button v-else class="btn btn-p btn-sm" @click="login"><div style="transform:translateY(12%);"><PhUserCircle :size="16" /></div>登录</button>
+        <button class="theme-btn" @click="toggleTheme"><PhSun :size="16" /></button>
       </div>
     </div>
   </nav>
@@ -200,9 +201,9 @@ function handleShowDialog(opts) {
       <button class="mob-menu-item" :class="{ active: currentPage === 'character' }" @click="switchPage('character'); mobileMenuOpen = false">主页</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'adventure' }" @click="switchPage('adventure'); mobileMenuOpen = false">历险</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'essays' }" @click="switchPage('essays'); mobileMenuOpen = false">随笔</button>
-      <button class="mob-menu-item" :class="{ active: currentPage === 'achievements' }" @click="switchPage('achievements'); mobileMenuOpen = false">成就</button>
-      <button class="mob-menu-item" :class="{ active: currentPage === 'shop' }" @click="switchPage('shop'); mobileMenuOpen = false">商店</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'vault' }" @click="switchPage('vault'); mobileMenuOpen = false">仓库</button>
+      <button class="mob-menu-item" :class="{ active: currentPage === 'shop' }" @click="switchPage('shop'); mobileMenuOpen = false">商店</button>
+      <button class="mob-menu-item" :class="{ active: currentPage === 'achievements' }" @click="switchPage('achievements'); mobileMenuOpen = false">成就</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'settings' }" @click="switchPage('settings'); mobileMenuOpen = false">设置</button>
     </div>
   </div>
