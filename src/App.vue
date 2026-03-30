@@ -26,7 +26,27 @@ const dialogActions = ref([])
 const toasts = ref([])
 
 function login() {
+  // 重定向到登录页面
   window.location.href = '/api/login'
+  
+  // 启动登录状态检查计时器
+  const loginCheckInterval = setInterval(async () => {
+    try {
+      const me = await getMe()
+      if (me.authenticated) {
+        // 登录成功，清除计时器并返回主页
+        clearInterval(loginCheckInterval)
+        window.location.href = '/'
+      }
+    } catch (e) {
+      console.error('检查登录状态失败:', e)
+    }
+  }, 1000) // 每秒检查一次
+  
+  // 1分钟后超时，清除计时器
+  setTimeout(() => {
+    clearInterval(loginCheckInterval)
+  }, 60000)
 }
 
 function showLogoutConfirm() {
