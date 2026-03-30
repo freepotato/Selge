@@ -12,6 +12,8 @@ import ShopPage from './pages/ShopPage.vue'
 import VaultPage from './pages/VaultPage.vue'
 import SettingsPage from './pages/SettingsPage.vue'
 
+
+
 const { state, save, autoSave, load } = useStore()
 
 // 用户认证状态
@@ -171,7 +173,7 @@ function handleShowDialog(opts) {
       <button class="mob-menu-btn" @click="mobileMenuOpen = !mobileMenuOpen">☰</button>
       <div class="nav-logo" @click="showAbout">Selge</div>
       <div class="nav-tabs">
-        <button class="nav-tab" :class="{ active: currentPage === 'character' }" @click="switchPage('character')">角色</button>
+        <button class="nav-tab" :class="{ active: currentPage === 'character' }" @click="switchPage('character')">主页</button>
         <button class="nav-tab" :class="{ active: currentPage === 'adventure' }" @click="switchPage('adventure')">历险</button>
         <button class="nav-tab" :class="{ active: currentPage === 'essays' }" @click="switchPage('essays')">随笔</button>
         <button class="nav-tab" :class="{ active: currentPage === 'achievements' }" @click="switchPage('achievements')">成就</button>
@@ -195,7 +197,7 @@ function handleShowDialog(opts) {
       <button class="mob-menu-close" @click="mobileMenuOpen = false">✕</button>
     </div>
     <div class="mob-menu-items">
-      <button class="mob-menu-item" :class="{ active: currentPage === 'character' }" @click="switchPage('character'); mobileMenuOpen = false">角色</button>
+      <button class="mob-menu-item" :class="{ active: currentPage === 'character' }" @click="switchPage('character'); mobileMenuOpen = false">主页</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'adventure' }" @click="switchPage('adventure'); mobileMenuOpen = false">历险</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'essays' }" @click="switchPage('essays'); mobileMenuOpen = false">随笔</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'achievements' }" @click="switchPage('achievements'); mobileMenuOpen = false">成就</button>
@@ -226,6 +228,8 @@ function handleShowDialog(opts) {
   <div class="dlg-overlay" :class="{ open: dialogOpen }" @click.self="closeDialog">
     <div class="dlg"><div class="dlg-title" v-html="dialogTitle"></div><div class="dlg-body" v-html="dialogBody"></div><div class="dlg-actions"><button v-for="(action, i) in dialogActions" :key="i" class="btn btn-sm" :class="action.cls" @click="action.fn ? (action.fn(), closeDialog()) : closeDialog()">{{ action.label }}</button></div></div>
   </div>
+
+
 
   
 </template>

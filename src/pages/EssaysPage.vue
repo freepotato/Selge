@@ -2,12 +2,21 @@
   <div class="page" :class="{ active: isActive }">
     <div class="wrap">
       <div class="fb mb24"><div><div class="page-title">随笔</div><div class="page-sub">写下来，就永远在了</div></div><button class="btn btn-p" @click="newEssay">+ 新建随笔</button></div>
+      
+      <!-- 分类选择 -->
+      <div class="mb16">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="hm-range-btn" :class="{ active: selectedCategory === 'all' }" @click="selectedCategory = 'all'">全部</button>
+          <button v-for="tag in allTags" :key="tag" class="hm-range-btn" :class="{ active: selectedCategory === tag }" @click="selectedCategory = tag">{{ tag }}</button>
+        </div>
+      </div>
+      
       <div class="essay-layout">
         <div>
           <div class="essay-timeline">
-            <div v-if="!state.essays.length" class="empty" style="padding:20px 0"><div class="empty-icon">📝</div>还没有随笔</div>
-            <div v-for="e in state.essays" :key="e.id" class="etl-item" :class="{ active: currentEssay?.id === e.id }" @click="openEssay(e)">
-              <div class="etl-date">{{ fmtDate(e.date) }} {{ e.mood }}{{ !e.submitted ? ' ✏️' : '' }}</div>
+            <div v-if="!filteredEssays.length" class="empty" style="padding:20px 0"><div class="empty-icon">📝</div>没有匹配的随笔</div>
+            <div v-for="e in filteredEssays" :key="e.id" class="etl-item" :class="{ active: currentEssay?.id === e.id }" @click="openEssay(e)">
+              <div class="etl-date">{{ formatDateTime(e.date) }} {{ e.mood }}{{ !e.submitted ? ' ✏️' : '' }}</div>
               <div class="etl-title">{{ e.title || '草稿…' }}</div>
             </div>
           </div>
@@ -17,9 +26,24 @@
           <div v-else-if="currentEssay.submitted" class="card cp">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
               <div class="essay-view-title">{{ currentEssay.title || '无题' }}</div>
-              <button class="btn btn-g btn-sm" @click="exportSingleEssay(currentEssay)" style="flex-shrink:0">📥 导出</button>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-g btn-sm" @click="editSubmittedEssay" style="flex-shrink:0">✏️ 编辑</button>
+                <button class="btn btn-g btn-sm" @click="exportSingleEssay(currentEssay)" style="flex-shrink:0">📥 导出</button>
+                <button class="btn btn-dg btn-sm" @click="deleteSubmittedEssay" style="flex-shrink:0">🗑️ 删除</button>
+              </div>
             </div>
-            <div class="essay-view-meta"><span>{{ currentEssay.mood }}</span><span>{{ fmtDate(currentEssay.date) }}</span><span>{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字</span></div>
+            <div class="essay-view-meta">
+              <div>
+                <span>{{ currentEssay.mood }}</span>
+                <span style="margin-left:12px">{{ formatDateTime(currentEssay.date) }}</span>
+                <span style="margin-left:12px">{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字</span>
+                <span style="margin-left:12px">{{ calculateReadingTime(currentEssay.content || '') }} min</span>
+              </div>
+              <br v-if="currentEssay.tags && currentEssay.tags.length" />
+              <div v-if="currentEssay.tags && currentEssay.tags.length">
+                <span v-for="(tag, i) in currentEssay.tags" :key="i" style="font-size:12px;color:var(--t2);padding:2px 8px;border:1px solid var(--bd);border-radius:12px;background:var(--sur);margin-right:8px">{{ tag }}</span>
+              </div>
+            </div>
             <div class="md-body" v-html="marked.parse(currentEssay.content || '')"></div>
           </div>
           <div v-else class="card cp">
@@ -38,7 +62,17 @@
               </div>
             </div>
             <TiptapEditor v-model="currentEssay.content" placeholder="支持 Markdown 语法…" @blur="save" />
-            <div class="fb" style="margin-top:10px"><span style="font-size:11px;color:var(--t4);font-family:monospace">{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字 · 提交后不可修改</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" @click="deleteEssay">删除草稿</button><button class="btn btn-p btn-sm" @click="submitEssay">提交随笔</button></div></div>
+            <div class="fb" style="margin-top:10px">
+              <span style="font-size:11px;color:var(--t4);font-family:monospace">
+                {{ (currentEssay.content || '').replace(/\s/g, '').length }} 字 · 
+                {{ calculateReadingTime(currentEssay.content || '') }} min · 
+                提交后可修改
+              </span>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-g btn-sm" @click="deleteEssay">删除草稿</button>
+                <button class="btn btn-p btn-sm" @click="submitEssay">提交随笔</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -47,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { marked } from 'marked'
 import { useStore } from '../stores/cloudStore.js'
 import TiptapEditor from '../components/TiptapEditor.vue'
@@ -62,12 +96,53 @@ const { state, uid, today, fmtDate, save } = useStore()
 
 const currentEssay = ref(null)
 const essayTagInput = ref('')
+const selectedCategory = ref('all')
+
+// 格式化日期时间，精确到分钟
+function formatDateTime(dateString) {
+  const date = new Date(dateString)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// 计算阅读时间（假设每分钟阅读300字）
+function calculateReadingTime(content) {
+  const wordCount = content.replace(/\s/g, '').length
+  return Math.ceil(wordCount / 300)
+}
+
+// 获取所有标签
+const allTags = computed(() => {
+  const tags = new Set()
+  state.essays.forEach(essay => {
+    if (essay.tags) {
+      essay.tags.forEach(tag => tags.add(tag))
+    }
+  })
+  return Array.from(tags)
+})
+
+// 根据选择的分类过滤随笔
+const filteredEssays = computed(() => {
+  if (selectedCategory.value === 'all') {
+    return state.essays
+  } else {
+    return state.essays.filter(essay => {
+      return essay.tags && essay.tags.includes(selectedCategory.value)
+    })
+  }
+})
 
 function newEssay() {
   const id = uid()
-  state.essays.unshift({ id, title: '', content: '', mood: '😊', date: today(), ts: Date.now(), submitted: false, tags: [] })
+  state.essays.unshift({ id, title: '', content: '', mood: '😊', date: new Date().toISOString(), ts: Date.now(), submitted: false, tags: [] })
   currentEssay.value = state.essays[0]
-  save()
+  updateAndSave()
 }
 
 function openEssay(essay) { 
@@ -81,13 +156,22 @@ function addEssayTag() {
   if (!currentEssay.value.tags) currentEssay.value.tags = []
   if (!currentEssay.value.tags.includes(tag)) {
     currentEssay.value.tags.push(tag)
-    save()
+    updateAndSave()
   }
   essayTagInput.value = ''
 }
 
 function removeEssayTag(index) {
   currentEssay.value.tags.splice(index, 1)
+  updateAndSave()
+}
+
+function updateAndSave() {
+  // 更新时间戳
+  if (currentEssay.value) {
+    currentEssay.value.date = new Date().toISOString()
+    currentEssay.value.ts = Date.now()
+  }
   save()
 }
 
@@ -106,10 +190,32 @@ function deleteEssay() {
       { label: '删除', cls: 'btn-dg', fn: () => {
         state.essays = state.essays.filter(e => e.id !== currentEssay.value.id)
         currentEssay.value = null
-        save()
+        updateAndSave()
       }}
     ]
   })
+}
+
+function deleteSubmittedEssay() {
+  emit('show-dialog', {
+    title: '删除随笔',
+    body: '确定删除这篇随笔？',
+    actions: [
+      { label: '取消', cls: 'btn-g' },
+      { label: '删除', cls: 'btn-dg', fn: () => {
+        state.essays = state.essays.filter(e => e.id !== currentEssay.value.id)
+        currentEssay.value = null
+        updateAndSave()
+        emit('show-toast', '随笔已删除', 'green', '📝')
+      }}
+    ]
+  })
+}
+
+function editSubmittedEssay() {
+  currentEssay.value.submitted = false
+  updateAndSave()
+  emit('show-toast', '进入编辑模式', 'green', '✏️')
 }
 
 function submitEssay() {
@@ -119,17 +225,31 @@ function submitEssay() {
   }
   emit('show-dialog', {
     title: '提交随笔',
-    body: '提交后将无法修改，确定吗？',
+    body: '确定提交这篇随笔？',
     actions: [
       { label: '取消', cls: 'btn-g' },
       { label: '确定提交', cls: 'btn-p', fn: () => {
+        // 检查是否已经获得过经验值
+        const hasGainedXp = currentEssay.value.hasGainedXp || false
+        
         currentEssay.value.submitted = true
         currentEssay.value.title = currentEssay.value.title || '无题'
-        const wordCount = currentEssay.value.content.length
-        const xpGain = Math.min(wordCount, 1000)
-        state.hero.xp += xpGain
-        save()
-        emit('show-toast', `随笔已提交 +${xpGain} XP`, 'green', '📝')
+        currentEssay.value.date = new Date().toISOString()
+        currentEssay.value.ts = Date.now()
+        
+        if (!hasGainedXp) {
+          // 第一次提交时才增加经验值
+          const wordCount = currentEssay.value.content.length
+          const xpGain = Math.min(wordCount, 1000)
+          state.hero.xp += xpGain
+          currentEssay.value.hasGainedXp = true
+          updateAndSave()
+          emit('show-toast', `随笔已提交 +${xpGain} XP`, 'green', '📝')
+        } else {
+          // 编辑后提交不增加经验值
+          updateAndSave()
+          emit('show-toast', '随笔已更新', 'green', '📝')
+        }
       }}
     ]
   })
