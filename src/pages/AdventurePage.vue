@@ -24,10 +24,10 @@
           </div>
           <span style="font-size:12px;color:var(--t3);font-family:monospace">{{ filteredAdventures.length }} 次</span>
         </div>
-        <div v-if="!filteredAdventures.length" class="empty" style="padding-top:24px"><div class="empty-icon">🗺️</div>没有匹配的历险记录</div>
+        <div v-if="!filteredAdventures.length" class="empty" style="padding-top:24px"><div class="empty-icon"><PhMapTrifold :size="32" color="#0b9314" weight="duotone" /></div>没有匹配的历险记录</div>
         <div v-else style="padding-top:12px">
           <div v-for="a in pagedAdventures" :key="a.id" class="adv-item">
-            <span class="adv-badge">{{ state.advTypes.find(t => t.id === a.typeId)?.emoji || '📌' }} {{ state.advTypes.find(t => t.id === a.typeId)?.name || '历险' }}</span>
+            <span class="adv-badge">{{ state.advTypes.find(t => t.id === a.typeId)?.emoji || '<PhPushPin :size="16" color="#0b9314" />' }} {{ state.advTypes.find(t => t.id === a.typeId)?.name || '历险' }}</span>
             <div class="adv-content">
               <div v-if="editingAdvId === a.id" class="adv-edit-row">
                 <input class="inp inp-h" v-model="editingAdvTitle" style="flex:1;min-width:100px" @keydown.enter="saveEditAdv(a)" @keydown.escape="cancelEditAdv" />

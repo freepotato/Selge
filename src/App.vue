@@ -78,15 +78,19 @@ onMounted(async () => {
     user.value = me
     if (me.authenticated) {
       // 已登录，从云端加载数据（会先读取 localStorage 缓存）
-      await load()
-      // 加载完成后，确保 cloudLoaded 为 true，允许保存数据
-      console.log('Login successful, data loaded from cloud')
+      try {
+        await load()
+        // 加载完成后，确保 cloudLoaded 为 true，允许保存数据
+        console.log('Login successful, data loaded from cloud')
+      } catch (e) {
+        console.error('加载云端数据失败:', e)
+      }
     }
   } catch (e) {
     console.error('获取用户信息失败:', e)
   }
-
-  // 数据加载完成，显示界面
+  
+  // 无论如何都显示界面
   document.getElementById('app')?.classList.add('ready')
 
   applyTheme(state.theme)

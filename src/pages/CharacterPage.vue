@@ -79,7 +79,7 @@
       <div class="mt24">
         <div class="sec-label mb16">最近动态</div>
         <div class="card cp">
-          <div v-if="!recentActivity.length" class="empty"><div class="empty-icon">🌿</div>开始你的第一次历险吧</div>
+          <div v-if="!recentActivity.length" class="empty"><div class="empty-icon"><PhGlobeHemisphereEast :size="48" color="#0b9314" weight="duotone" /></div>开始你的第一次历险吧</div>
           <div v-else>
             <div v-for="item in recentActivity" :key="item.ts" class="activity-item">
               <span style="font-size:20px">{{ item.type === 'adv' ? (state.advTypes.find(t => t.id === item.data.typeId)?.emoji || '📌') : item.data.mood }}</span>

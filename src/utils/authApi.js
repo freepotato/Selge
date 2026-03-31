@@ -4,16 +4,21 @@ const API_BASE = '/api'
 
 // 获取当前用户信息
 export async function getMe() {
-  const res = await fetch(`${API_BASE}/login`, { headers: { 'Accept': 'application/json' } })
-  if (res.status === 401) {
-    return { authenticated: false }
+  try {
+    const res = await fetch(`${API_BASE}/login`, { headers: { 'Accept': 'application/json' } })
+    if (res.status === 401) {
+      return { authenticated: false }
+    }
+    if (!res.ok) {
+      return { authenticated: false }
+    }
+    const data = await res.json()
+    const username = data.email.split('@')[0]
+    return { authenticated: true, email: data.email, username }
+  } catch (e) {
+    console.error('获取用户信息失败:', e)
+    return { authenticated: false, username: 'Guest' }
   }
-  if (!res.ok) {
-    throw new Error(`获取用户信息失败: ${res.status}`)
-  }
-  const data = await res.json()
-  const username = data.email.split('@')[0]
-  return { authenticated: true, email: data.email, username }
 }
 
 // 保存数据
