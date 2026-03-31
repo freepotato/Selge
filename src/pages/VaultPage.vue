@@ -32,7 +32,7 @@
             <span style="font-size:12px;color:var(--t3);font-family:monospace">{{ vaultFilteredItems.length }} 项</span>
             <button class="btn btn-p btn-sm" @click="addVaultItem">+ 添加项目</button>
           </div>
-          <div v-if="!vaultFilteredItems.length" class="empty" style="padding-top:24px"><div class="empty-icon">📂</div>暂无内容</div>
+          <div v-if="!vaultFilteredItems.length" class="empty" style="padding-top:24px"><div class="empty-icon"><PhFolderOpen :size="32" weight="duotone" /></div>暂无内容</div>
           <div v-else class="vault-grid">
             <div v-for="item in vaultPagedItems" :key="item.id" class="vault-card" @click="vaultDetailId = item.id">
               <div class="vault-card-cover">

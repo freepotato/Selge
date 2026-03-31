@@ -14,7 +14,7 @@
       <div class="essay-layout">
         <div>
           <div class="essay-timeline">
-            <div v-if="!filteredEssays.length" class="empty" style="padding:20px 0"><div class="empty-icon">📝</div>没有匹配的随笔</div>
+            <div v-if="!filteredEssays.length" class="empty" style="padding:20px 0"><div class="empty-icon"><PhBookOpenText :size="32" weight="duotone" /></div>没有匹配的随笔</div>
             <div v-for="e in filteredEssays" :key="e.id" class="etl-item" :class="{ active: currentEssay?.id === e.id }" @click="openEssay(e)">
               <div class="etl-date">{{ formatDateTime(e.date) }} {{ e.mood }}{{ !e.submitted ? ' ✏️' : '' }}</div>
               <div class="etl-title">{{ e.title || '草稿…' }}</div>
@@ -22,7 +22,7 @@
           </div>
         </div>
         <div>
-          <div v-if="!currentEssay" class="card" style="text-align:center;color:var(--t4);padding:60px 20px"><div style="font-size:32px;margin-bottom:10px">📖</div><div>选择一篇随笔，或新建一篇</div></div>
+          <div v-if="!currentEssay" class="card" style="text-align:center;color:var(--t4);padding:60px 20px"><div style="font-size:32px;margin-bottom:10px"><PhAperture :size="48" weight="duotone" /></div><div>选择一篇随笔，或新建一篇</div></div>
           <div v-else-if="currentEssay.submitted" class="card cp">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
               <div class="essay-view-title">{{ currentEssay.title || '无题' }}</div>
