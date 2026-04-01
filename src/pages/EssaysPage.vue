@@ -36,7 +36,7 @@
               <div>
                 <span>{{ currentEssay.mood }}</span>
                 <span style="margin-left:12px">{{ formatDateTime(currentEssay.date) }}</span>
-                <span style="margin-left:12px">{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字</span>
+                <span style="margin-left:12px">{{ ((currentEssay.content || '').replace(/!\[.*?\]\(.*?\)/g, '').replace(/\s/g, '')).length }} 字</span>
                 <span style="margin-left:12px">{{ calculateReadingTime(currentEssay.content || '') }} min</span>
               </div>
               <br v-if="currentEssay.tags && currentEssay.tags.length" />
@@ -64,7 +64,7 @@
             <TiptapEditor v-model="currentEssay.content" placeholder="支持 Markdown 语法…" @blur="save" />
             <div class="fb" style="margin-top:10px">
               <span style="font-size:11px;color:var(--t4);font-family:monospace">
-                {{ (currentEssay.content || '').replace(/\s/g, '').length }} 字 · 
+                {{ ((currentEssay.content || '').replace(/!\[.*?\]\(.*?\)/g, '').replace(/\s/g, '')).length }} 字 · 
                 {{ calculateReadingTime(currentEssay.content || '') }} min · 
                 提交后可修改
               </span>
@@ -112,7 +112,9 @@ function formatDateTime(dateString) {
 
 // 计算阅读时间（假设每分钟阅读300字）
 function calculateReadingTime(content) {
-  const wordCount = content.replace(/\s/g, '').length
+  // 移除图片标签，不计算图片字数
+  const contentWithoutImages = content.replace(/!\[.*?\]\(.*?\)/g, '')
+  const wordCount = contentWithoutImages.replace(/\s/g, '').length
   return Math.ceil(wordCount / 300)
 }
 
@@ -275,3 +277,18 @@ tags: ${JSON.stringify(e.tags || [])}
 // 从 store 中获取 MOODS
 const { MOODS } = useStore()
 </script>
+
+<style>
+/* 查看界面中的图片样式 */
+.md-body img {
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid var(--bd, #e5e7eb);
+  margin: 0 4px;
+  display: inline-block;
+  object-fit: contain;
+  vertical-align: middle;
+}
+</style>

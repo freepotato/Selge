@@ -8,6 +8,8 @@
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
+import Image from '@tiptap/extension-image'
+import { uploadImage } from '../utils/authApi.js'
 import TurndownService from 'turndown'
 import { marked } from 'marked'
 import { watch, onBeforeUnmount } from 'vue'
@@ -30,7 +32,8 @@ const editor = useEditor({
     StarterKit.configure({
       heading: { levels: [1, 2, 3] }
     }),
-    Placeholder.configure({ placeholder: props.placeholder })
+    Placeholder.configure({ placeholder: props.placeholder }),
+    Image
   ],
   content: props.modelValue ? marked.parse(props.modelValue) : '',
   onUpdate: ({ editor }) => {
@@ -45,9 +48,92 @@ const editor = useEditor({
   editorProps: {
     attributes: {
       class: 'prose prose-sm sm:prose lg:prose-lg focus:outline-none'
+    },
+    handlePaste: async (view, event) => {
+      const clipboardData = event.clipboardData
+      if (!clipboardData) return
+
+      // 尝试处理图片文件
+      const items = Array.from(clipboardData.items || [])
+      const imageItem = items.find(item => item.type.indexOf('image') === 0)
+
+      if (imageItem) {
+        event.preventDefault()
+        const file = imageItem.getAsFile()
+        if (file) {
+          await handleImageUpload(file)
+        }
+        return
+      }
+
+      // 尝试处理图片数据URL
+      const dataTransfer = event.dataTransfer
+      if (dataTransfer) {
+        const files = Array.from(dataTransfer.files || [])
+        const imageFile = files.find(file => file.type.indexOf('image') === 0)
+        if (imageFile) {
+          event.preventDefault()
+          await handleImageUpload(imageFile)
+          return
+        }
+      }
+    },
+    handleDrop: async (view, event) => {
+      const files = Array.from(event.dataTransfer?.files || [])
+      const imageFile = files.find(file => file.type.indexOf('image') === 0)
+
+      if (imageFile) {
+        event.preventDefault()
+        await handleImageUpload(imageFile)
+      }
     }
   }
 })
+
+async function handleImageUpload(file) {
+  try {
+    // 尝试上传到Cloudflare R2
+    const result = await uploadImage(file, 'essays')
+    if (result.success && result.url) {
+      editor.value?.commands.insertContent({
+        type: 'image',
+        attrs: {
+          src: result.url,
+          alt: 'Uploaded image'
+        }
+      })
+    } else {
+      // 上传失败，使用降级方案：读取为base64
+      await handleLocalImage(file)
+    }
+  } catch (error) {
+    console.error('Image upload failed:', error)
+    // 上传失败，使用降级方案：读取为base64
+    await handleLocalImage(file)
+  }
+}
+
+async function handleLocalImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const base64Url = e.target.result
+      editor.value?.commands.insertContent({
+        type: 'image',
+        attrs: {
+          src: base64Url,
+          alt: 'Local image'
+        }
+      })
+      resolve()
+    }
+    reader.onerror = (error) => {
+      console.error('Local image read failed:', error)
+      reject(error)
+    }
+    reader.readAsDataURL(file)
+  })
+}
 
 // 外部内容变化时同步到编辑器
 watch(() => props.modelValue, (val) => {
@@ -180,6 +266,19 @@ onBeforeUnmount(() => {
   color: var(--ac, #3d6b30);
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* 图片 */
+.tiptap-content img {
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid var(--bd, #e5e7eb);
+  margin: 0 4px;
+  display: inline-block;
+  object-fit: contain;
+  vertical-align: middle;
 }
 
 /* 段落间距 */

@@ -6,6 +6,7 @@
         <div class="char-banner-overlay"></div>
         <div class="char-banner-content">
           <div class="daily-quote-text" style="font-size:16px;line-height:1.6">「{{ dailyQuote }}」</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:8px;text-shadow:0 1px 2px rgba(0,0,0,0.15);text-align:right">{{ todayDate }}</div>
         </div>
       </div>
 
@@ -118,6 +119,11 @@ const dailyQuote = computed(() => {
   const d = new Date()
   const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000)
   return DAILY_QUOTES[(dayOfYear - 1) % DAILY_QUOTES.length]
+})
+
+const todayDate = computed(() => {
+  const d = new Date()
+  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 })
 
 const pinnedTypes = computed(() => state.advTypes.filter(t => t.pinned))
