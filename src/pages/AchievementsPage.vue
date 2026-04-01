@@ -57,7 +57,7 @@ function getAdvCounts() {
 }
 
 const sortedAchievements = computed(() => {
-  const allAchs = [...ACHIEVEMENTS.read, ...ACHIEVEMENTS.movie, ...ACHIEVEMENTS.guitar, ...ACHIEVEMENTS.walk, ...ACHIEVEMENTS.total]
+  const allAchs = [...ACHIEVEMENTS.read, ...ACHIEVEMENTS.movie, ...ACHIEVEMENTS.guitar, ...ACHIEVEMENTS.walk, ...ACHIEVEMENTS.adventure]
   const unlocked = allAchs.filter(a => isAchievementUnlocked(a.id)).reverse()
   const locked = allAchs.filter(a => !isAchievementUnlocked(a.id))
   return [...unlocked, ...locked]

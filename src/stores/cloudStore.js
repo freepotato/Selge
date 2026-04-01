@@ -46,13 +46,6 @@ const ACHIEVEMENTS = {
     { id: 'w4', icon: PhMountains, color:'#2d8f0a', name: '自然漫步者', desc: '散步 90 次', req: 90 },
     { id: 'w5', icon: PhPersonSimpleHike, color:'#2d8f0a', name: '四季行者', desc: '散步 365 次', req: 365 }
   ],
-  total: [
-    { id: 'a1', icon: PhMapPinSimpleArea, color: '#bc0b96', name: '初出茅庐', desc: '完成第一次历险', req: 1 },
-    { id: 'a2', icon: PhCalendarCheck, color: '#bc0b96', name: '渐入佳境', desc: '完成 30 次历险', req: 30 },
-    { id: 'a3', icon: PhHourglassMedium, color: '#bc0b96', name: '持之以恒', desc: '完成 90 次历险', req: 90 },
-    { id: 'a4', icon: PhCalendar, color: '#bc0b96', name: '365里路', desc: '完成 365 次历险', req: 365 },
-    { id: 'a5', icon: PhTrophy, color: '#bc0b96', name: '传奇历险家', desc: '完成 720 次历险', req: 720 }
-  ],
   adventure: [
     { id: 'a1', icon: PhMapPinSimpleArea, color: '#bc0b96', name: '初出茅庐', desc: '完成第一次历险', req: 1 },
     { id: 'a2', icon: PhCalendarCheck, color: '#bc0b96', name: '渐入佳境', desc: '完成 30 次历险', req: 30 },

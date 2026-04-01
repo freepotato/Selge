@@ -117,7 +117,7 @@ function addAdventure() {
 function checkAchievements() {
   const counts = getAdvCounts()
   counts.total = state.adventures.length
-  const allAchs = [...ACHIEVEMENTS.read, ...ACHIEVEMENTS.movie, ...ACHIEVEMENTS.guitar, ...ACHIEVEMENTS.walk, ...ACHIEVEMENTS.total]
+  const allAchs = [...ACHIEVEMENTS.read, ...ACHIEVEMENTS.movie, ...ACHIEVEMENTS.guitar, ...ACHIEVEMENTS.walk, ...ACHIEVEMENTS.adventure]
   allAchs.forEach(a => {
     const reqKey = a.id.startsWith('r') ? 'read' : a.id.startsWith('m') ? 'movie' : a.id.startsWith('g') ? 'guitar' : a.id.startsWith('w') ? 'walk' : 'total'
     const currentCount = reqKey === 'total' ? state.adventures.length : (counts[reqKey] || 0)
