@@ -24,7 +24,7 @@
           </div>
           <span style="font-size:12px;color:var(--t3);font-family:monospace">{{ filteredAdventures.length }} 次</span>
         </div>
-        <div v-if="!filteredAdventures.length" class="empty" style="padding-top:24px"><div class="empty-icon"><PhMapTrifold :size="32" color="#0b9314" weight="duotone" /></div>没有匹配的历险记录</div>
+        <div v-if="!filteredAdventures.length" class="empty" style="padding-top:24px"><div class="empty-icon"><PhMapTrifold :size="32" weight="duotone" /></div>没有匹配的历险记录</div>
         <div v-else style="padding-top:12px">
           <div v-for="a in pagedAdventures" :key="a.id" class="adv-item">
             <span class="adv-badge">{{ state.advTypes.find(t => t.id === a.typeId)?.emoji || '<PhPushPin :size="16" color="#0b9314" />' }} {{ state.advTypes.find(t => t.id === a.typeId)?.name || '历险' }}</span>
@@ -40,8 +40,8 @@
               </div>
             </div>
             <div v-if="editingAdvId !== a.id" class="adv-actions">
-              <button class="adv-act-btn" @click="startEditAdv(a)" title="编辑">✏️</button>
-              <button class="adv-act-btn" @click="deleteAdventure(a)" title="删除">🗑️</button>
+              <button class="adv-act-btn" @click="startEditAdv(a)" title="编辑"><PhPencilSimpleLine :size="18" color="#289202" weight="fill"/></button>
+              <button class="adv-act-btn" @click="deleteAdventure(a)" title="删除"><PhTrash :size="18" color="#d21e1e" weight="fill"/></button>
             </div>
           </div>
           <div v-if="advTotalPages > 1" class="adv-pagination">
@@ -58,6 +58,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useStore } from '../stores/cloudStore.js'
+import { PhPencil, PhTrash } from '@phosphor-icons/vue'
 
 const props = defineProps({
   isActive: Boolean

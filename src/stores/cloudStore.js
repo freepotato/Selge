@@ -3,6 +3,7 @@
 
 import { reactive } from 'vue'
 import { saveData, loadData } from '../utils/authApi.js'
+import { PhBookBookmark, PhBookmarks, PhBookOpen, PhBookOpenUser, PhCalendar, PhCalendarCheck, PhCrownCross, PhFilmReel, PhFilmSlate, PhFootprints, PhGraduationCap, PhGuitar, PhHoodie, PhHourglassMedium, PhLeaf, PhMapPinSimpleArea, PhMountains, PhMusicNote, PhMusicNoteSimple, PhMusicNotesPlus, PhMusicNotesSimple, PhPants, PhPersonSimpleHike, PhPiggyBank, PhPopcorn, PhSneaker, PhStudent, PhTicket, PhTree, PhTrophy } from '@phosphor-icons/vue'
 
 const XP_ESSAY = 20
 const STORAGE_KEY = 'selge_cache'
@@ -18,56 +19,57 @@ const MOODS = ['😊', '😌', '😔', '😤', '🤔', '😴', '🎉', '💪']
 
 const ACHIEVEMENTS = {
   read: [
-    { id: 'r1', icon: '📖', name: '开卷有益', desc: '读完第一本书', req: 1 },
-    { id: 'r2', icon: '📚', name: '书虫', desc: '读完 10 本书', req: 10 },
-    { id: 'r3', icon: '🏛️', name: '学者', desc: '读完 30 本书', req: 30 },
-    { id: 'r4', icon: '📜', name: '藏书阁', desc: '读完 50 本书', req: 50 },
-    { id: 'r5', icon: '🎓', name: '知识渊博', desc: '读完 100 本书', req: 100 }
+    { id: 'r1', icon: PhBookOpen, color: '#1d71c0', name: '开卷有益', desc: '读完第一本书', req: 1 },
+    { id: 'r2', icon: PhBookOpenUser, color: '#1d71c0', name: '书虫', desc: '读完 10 本书', req: 10 },
+    { id: 'r3', icon: PhStudent, color: '#1d71c0', name: '学者', desc: '读完 30 本书', req: 30 },
+    { id: 'r4', icon: PhBookBookmark, color: '#1d71c0', name: '藏书阁', desc: '读完 50 本书', req: 50 },
+    { id: 'r5', icon: PhGraduationCap, color: '#1d71c0', name: '知识渊博', desc: '读完 100 本书', req: 100 }
   ],
   movie: [
-    { id: 'm1', icon: '🎬', name: '影迷入门', desc: '看第一部电影', req: 1 },
-    { id: 'm2', icon: '🎞️', name: '影迷', desc: '看 20 部电影', req: 20 },
-    { id: 'm3', icon: '🏆', name: '影评达人', desc: '看 50 部电影', req: 50 },
-    { id: 'm4', icon: '🎥', name: '电影大师', desc: '看 100 部电影', req: 100 },
-    { id: 'm5', icon: '🌟', name: '银幕传奇', desc: '看 200 部电影', req: 200 }
+    { id: 'm1', icon: PhFilmSlate, color: '#f9066f', name: '光影初遇', desc: '看第一部电影', req: 1 },
+    { id: 'm2', icon: PhPopcorn, color:'#f9066f', name: '刷片上瘾', desc: '看 20 部电影', req: 20 },
+    { id: 'm3', icon: PhFilmReel, color:'#f9066f', name: '狂炫电影', desc: '看 50 部电影', req: 50 },
+    { id: 'm4', icon: PhBookmarks, color:'#f9066f', name: '故事收藏家', desc: '看 100 部电影', req: 100 },
+    { id: 'm5', icon: PhCrownCross, color:'#f9066f', name: '银幕传奇', desc: '看 200 部电影', req: 200 }
   ],
   guitar: [
-    { id: 'g1', icon: '🎸', name: '拨弦初试', desc: '学会第一曲', req: 1 },
-    { id: 'g2', icon: '🎵', name: '琴韵悠扬', desc: '学会 3 曲', req: 3 },
-    { id: 'g3', icon: '🎶', name: '指尖如歌', desc: '学会 7 曲', req: 7 },
-    { id: 'g4', icon: '🎼', name: '琴艺高手', desc: '学会 15 曲', req: 15 },
-    { id: 'g5', icon: '🎹', name: '指弹大师', desc: '学会 30 曲', req: 30 }
+    { id: 'g1', icon: PhMusicNoteSimple, color: "#f9a006", name: '拨弦初试', desc: '学会第一曲', req: 1 },
+    { id: 'g2', icon: PhMusicNote, color: "#f9a006", name: '小有所成', desc: '学会 3 曲', req: 3 },
+    { id: 'g3', icon: PhMusicNotesSimple, color: "#f9a006", name: '指尖如歌', desc: '学会 7 曲', req: 7 },
+    { id: 'g4', icon: PhMusicNotesPlus, color: "#f9a006", name: '琴艺高手', desc: '学会 15 曲', req: 15 },
+    { id: 'g5', icon: PhGuitar, color: "#f9a006", name: '指弹大师', desc: '学会 30 曲', req: 30 }
   ],
   walk: [
-    { id: 'w1', icon: '🚶', name: '踏出一步', desc: '第一次散步', req: 1 },
-    { id: 'w2', icon: '🌿', name: '闲庭信步', desc: '散步 10 次', req: 10 },
-    { id: 'w3', icon: '🌳', name: '行者', desc: '散步 30 次', req: 30 },
-    { id: 'w4', icon: '🏞️', name: '自然漫步者', desc: '散步 90 次', req: 90 },
-    { id: 'w5', icon: '🌍', name: '四季行者', desc: '散步 365 次', req: 365 }
+    { id: 'w1', icon: PhFootprints, color: '#2d8f0a', name: '踏出一步', desc: '第一次散步', req: 1 },
+    { id: 'w2', icon: PhLeaf, color:'#2d8f0a', name: '闲庭信步', desc: '散步 10 次', req: 10 },
+    { id: 'w3', icon: PhTree, color:'#2d8f0a', name: '行者', desc: '散步 30 次', req: 30 },
+    { id: 'w4', icon: PhMountains, color:'#2d8f0a', name: '自然漫步者', desc: '散步 90 次', req: 90 },
+    { id: 'w5', icon: PhPersonSimpleHike, color:'#2d8f0a', name: '四季行者', desc: '散步 365 次', req: 365 }
   ],
   total: [
-    { id: 't1', icon: '⚔️', name: '初出茅庐', desc: '第一次历险', req: 1 },
-    { id: 't2', icon: '🛡️', name: '渐入佳境', desc: '历险 10 次', req: 10 },
-    { id: 't3', icon: '🏅', name: '身经百战', desc: '历险 100 次', req: 100 },
-    { id: 't4', icon: '👑', name: '传奇', desc: '历险 365 次', req: 365 }
+    { id: 'a1', icon: PhMapPinSimpleArea, color: '#bc0b96', name: '初出茅庐', desc: '完成第一次历险', req: 1 },
+    { id: 'a2', icon: PhCalendarCheck, color: '#bc0b96', name: '渐入佳境', desc: '完成 30 次历险', req: 30 },
+    { id: 'a3', icon: PhHourglassMedium, color: '#bc0b96', name: '持之以恒', desc: '完成 90 次历险', req: 90 },
+    { id: 'a4', icon: PhCalendar, color: '#bc0b96', name: '365里路', desc: '完成 365 次历险', req: 365 },
+    { id: 'a5', icon: PhTrophy, color: '#bc0b96', name: '传奇历险家', desc: '完成 720 次历险', req: 720 }
   ],
   adventure: [
-    { id: 'a1', icon: '🗺️', name: '初出茅庐', desc: '完成第一次历险', req: 1 },
-    { id: 'a2', icon: '🧭', name: '渐入佳境', desc: '完成 30 次历险', req: 30 },
-    { id: 'a3', icon: '🏔️', name: '身经百战', desc: '完成 90 次历险', req: 90 },
-    { id: 'a4', icon: '👑', name: '传奇', desc: '完成 365 次历险', req: 365 },
-    { id: 'a5', icon: '🌟', name: '不朽传说', desc: '完成 720 次历险', req: 720 }
+    { id: 'a1', icon: PhMapPinSimpleArea, color: '#bc0b96', name: '初出茅庐', desc: '完成第一次历险', req: 1 },
+    { id: 'a2', icon: PhCalendarCheck, color: '#bc0b96', name: '渐入佳境', desc: '完成 30 次历险', req: 30 },
+    { id: 'a3', icon: PhHourglassMedium, color: '#bc0b96', name: '持之以恒', desc: '完成 90 次历险', req: 90 },
+    { id: 'a4', icon: PhCalendar, color: '#bc0b96', name: '365里路', desc: '完成 365 次历险', req: 365 },
+    { id: 'a5', icon: PhTrophy, color: '#bc0b96', name: '传奇历险家', desc: '完成 720 次历险', req: 720 }
   ]
 }
 
 const COIN_SVG = '<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px;vertical-align:middle"><circle cx="10" cy="10" r="9" fill="#f0c040" stroke="#d4a017" stroke-width="1"/><circle cx="10" cy="10" r="6" fill="none" stroke="#d4a017" stroke-width="1"/><text x="10" y="14" text-anchor="middle" font-size="10" font-weight="bold" fill="#8b6914">$</text></svg>'
 
 const COIN_ITEMS = [
-  { id: 'm_ticket', icon: '🎟️', name: '电影票', price: 100, realValue: '约¥35', desc: '看一场电影' },
-  { id: 'pants', icon: '👖', name: '新裤子', price: 250, realValue: '约¥100', desc: '踏出每一步' },
-  { id: 'redpack', icon: '🧧', name: '100元红包', price: 300, realValue: '¥100', desc: '放心地花吧' },
-  { id: 'jacket', icon: '🧥', name: '新外套', price: 500, realValue: '约¥200', desc: '风里更从容' },
-  { id: 's_shoes', icon: '👟', name: '新鞋子', price: 750, realValue: '约¥300', desc: '走更远的路' }
+  { id: 'm_ticket', icon: PhTicket, color: '#98673e', name: '电影票', price: 100, realValue: '约¥35', desc: '看一场电影' },
+  { id: 'pants', icon: PhPants,color: '#0091ff', name: '新裤子', price: 250, realValue: '约¥100', desc: '踏出每一步' },
+  { id: 'redpack', icon: PhPiggyBank, color: '#f9f106', name: '100元红包', price: 300, realValue: '¥100', desc: '放心地花吧' },
+  { id: 'jacket', icon: PhHoodie, color: '#060ef9', name: '新外套', price: 500, realValue: '约¥200', desc: '风里更从容' },
+  { id: 's_shoes', icon: PhSneaker, color: '#f9066f', name: '新鞋子', price: 750, realValue: '约¥300', desc: '走更远的路' }
 ]
 
 const DAILY_QUOTES = [

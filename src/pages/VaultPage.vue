@@ -37,7 +37,7 @@
             <div v-for="item in vaultPagedItems" :key="item.id" class="vault-card" @click="vaultDetailId = item.id">
               <div class="vault-card-cover">
                 <img v-if="(item.images || []).length" :src="vaultUrl(item.images[0])" class="vault-card-img" loading="lazy" />
-                <div v-else class="vault-card-empty">📂</div>
+                <div v-else class="vault-card-empty"><PhFolder /></div>
               </div>
               <div class="vault-card-info">
                 <div class="vault-card-name">{{ item.name || '未命名' }}</div>
@@ -79,7 +79,7 @@
             <span style="font-size:13px;color:var(--t3)">图片 ({{ (vaultDetailItem?.images || []).length }})</span>
             <button class="btn btn-p btn-sm" @click="triggerVaultUpload(vaultDetailId)">+ 上传图片</button>
           </div>
-          <div v-if="!vaultDetailItem?.images?.length" class="empty" style="padding-top:24px"><div class="empty-icon">📷</div>暂无图片</div>
+          <div v-if="!vaultDetailItem?.images?.length" class="empty" style="padding-top:24px"><PhImage :size="48" weight="fill" /><br>暂无图片</div>
           <div v-else class="vault-detail-imgs">
             <div v-for="(img, idx) in vaultDetailItem.images" :key="idx" class="vault-detail-img-wrap">
               <img :src="vaultUrl(img)" class="vault-detail-img" loading="lazy" @click="openVaultViewer(idx)" />

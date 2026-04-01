@@ -5,7 +5,7 @@
       <div class="char-coin-row"><div class="coin-display" v-html="coinDisplay"></div><div style="font-size:12px;color:var(--t3)">每获得 1 XP 可获得 1 金币，随笔产生的 XP 除外。</div></div>
       <div class="shop-grid">
         <div v-for="item in COIN_ITEMS" :key="item.id" class="shop-card" :class="{ owned: state.hero.purchasedItems?.includes(item.id) }">
-          <div class="shop-card-icon">{{ item.icon }}</div><div class="shop-card-name">{{ item.name }}</div><div class="shop-card-real">现实价值 {{ item.realValue }}</div>
+          <div class="shop-card-icon"><component :is="item.icon" weight="fill" :color="item.color" /></div><div class="shop-card-name">{{ item.name }}</div><div class="shop-card-real">现实价值 {{ item.realValue }}</div>
           <div class="shop-card-price" v-html="COIN_SVG + ' <strong>' + item.price.toLocaleString() + '</strong>'"></div>
           <div style="font-size:11px;color:var(--t4);margin-bottom:12px">{{ item.desc }}</div>
           <button v-if="state.hero.purchasedItems?.includes(item.id)" class="btn btn-sm shop-card-btn" disabled>✓ 已拥有</button>

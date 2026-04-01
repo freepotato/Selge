@@ -214,7 +214,8 @@ function handleShowDialog(opts) {
 
   <div id="toastWrap">
     <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">
-      <span v-if="t.icon">{{ t.icon }}</span>
+      <!-- <span v-if="t.icon">{{ t.icon }}</span> -->
+      <component v-if="t.icon" :is="t.icon" weight="fill" />
       <span>{{ t.msg }}</span>
     </div>
   </div>

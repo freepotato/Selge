@@ -40,8 +40,8 @@
         </div>
         <div class="card cp">
           <div class="set-sec-title">数据</div>
-          <div class="set-row"><div><div class="set-label">导出备份</div><div class="set-desc">导出为 JSON / Markdown / ZIP</div></div><div style="display:flex;gap:6px"><button class="btn btn-g btn-sm" @click="exportJson">📄 JSON</button><button class="btn btn-g btn-sm" @click="exportMarkdown">📝 MD</button><button class="btn btn-g btn-sm" @click="exportZip">📦 ZIP</button></div></div>
-          <div class="set-row"><div><div class="set-label">导入数据</div><div class="set-desc">导入 JSON 文件或 Markdown 随笔</div></div><button class="btn btn-g btn-sm" @click="triggerImport">📥 导入</button></div>
+          <div class="set-row"><div><div class="set-label">导出备份</div><div class="set-desc">导出为 JSON / Markdown / ZIP</div></div><div style="display:flex;gap:6px"><button class="btn btn-g btn-sm" @click="exportJson"><div style="transform:translateY(12%);"><PhFile :size="16" /></div>JSON</button><button class="btn btn-g btn-sm" @click="exportMarkdown"><div style="transform:translateY(12%);"><PhFileMd :size="16" /></div> MD</button><button class="btn btn-g btn-sm" @click="exportZip"><div style="transform:translateY(12%);"><PhFileZip :size="16" /></div> ZIP</button></div></div>
+          <div class="set-row"><div><div class="set-label">导入数据</div><div class="set-desc">导入 JSON 文件或 Markdown 随笔</div></div><button class="btn btn-g btn-sm" @click="triggerImport"><div style="transform:translateY(12%);"><PhUpload :size="16" /></div>导入</button></div>
           <div class="set-row"><div><div class="set-label">清除所有数据</div><div class="set-desc" style="color:#c0392b">不可撤销</div></div><button class="btn btn-sm btn-danger" @click="clearData">永久清除</button></div>
         </div>
       </div>
@@ -53,6 +53,7 @@
 import { ref, onMounted } from 'vue'
 import JSZip from 'jszip'
 import { useStore } from '../stores/cloudStore.js'
+import { PhFile, PhFileMd, PhFileZip, PhUpload } from '@phosphor-icons/vue'
 
 const props = defineProps({
   isActive: Boolean

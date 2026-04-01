@@ -12,7 +12,7 @@
       </div>
       <div class="ach-grid">
         <div v-for="a in (achFilter === 'all' ? sortedAchievements : ACHIEVEMENTS[achFilter] || [])" :key="a.id" class="ach-card" :class="{ unlocked: isAchievementUnlocked(a.id), locked: !isAchievementUnlocked(a.id) }">
-          <div class="ach-shine"></div><div class="ach-icon">{{ a.icon }}</div><div class="ach-name">{{ a.name }}</div><div class="ach-desc">{{ a.desc }}</div>
+          <div class="ach-shine"></div><div class="ach-icon"><component :is="a.icon" weight="fill" :color="a.color" /></div><div class="ach-name">{{ a.name }}</div><div class="ach-desc">{{ a.desc }}</div>
           <div class="ach-progress"><div class="ach-progress-bar"><div class="ach-progress-fill" :style="{ width: Math.min(100, ((a.id.startsWith('r') ? getAdvCounts().read : a.id.startsWith('m') ? getAdvCounts().movie : a.id.startsWith('g') ? getAdvCounts().guitar : a.id.startsWith('w') ? getAdvCounts().walk : state.adventures.length) || 0) / a.req * 100) + '%' }"></div></div><div class="ach-progress-text">{{ (a.id.startsWith('r') ? getAdvCounts().read : a.id.startsWith('m') ? getAdvCounts().movie : a.id.startsWith('g') ? getAdvCounts().guitar : a.id.startsWith('w') ? getAdvCounts().walk : state.adventures.length) || 0 }}/{{ a.req }}</div></div>
           <div v-if="isAchievementUnlocked(a.id)" class="ach-unlock-date">✓ {{ getAchievementUnlockDate(a.id) ? fmtDate(getAchievementUnlockDate(a.id)) : '已解锁' }}</div>
         </div>
