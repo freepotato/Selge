@@ -5,7 +5,8 @@
         <img v-if="state.hero.bannerImg" class="char-banner-img" :src="state.hero.bannerImg" />
         <div class="char-banner-overlay"></div>
         <div class="char-banner-content">
-          <div class="daily-quote-text" style="font-size:16px;line-height:1.6">「{{ dailyQuote }}」</div>
+          <div class="daily-quote-text" style="font-size:16px;line-height:1.6">「{{ dailyQuote.text }}」</div>
+          <div class="daily-quote-source" style="font-size:12px;color:var(--t2);margin-top:8px">—— {{ dailyQuoteSource }}</div>
           <div class="daily-quote-date" >{{ todayDate }}</div>
         </div>
       </div>
@@ -128,6 +129,11 @@ const dailyQuote = computed(() => {
   const d = new Date()
   const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000)
   return DAILY_QUOTES[(dayOfYear - 1) % DAILY_QUOTES.length]
+})
+const dailyQuoteSource = computed(() => {
+  const d = new Date()
+  const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000)
+  return DAILY_QUOTES[(dayOfYear - 1) % DAILY_QUOTES.length].source
 })
 
 const todayDate = computed(() => {
