@@ -2,6 +2,7 @@
 import { ref, onMounted, defineAsyncComponent } from 'vue'
 import { useStore } from './stores/cloudStore.js'
 import { getMe } from './utils/authApi.js'
+import { marked } from 'marked'
 
 // 动态导入页面组件（懒加载）
 const CharacterPage = defineAsyncComponent(() => import('./pages/CharacterPage.vue'))
@@ -170,21 +171,18 @@ function showAbout() {
 
 async function showUpdate() {
   try {
-    const response = await fetch('./CHANGELOG.md')
+    // 使用绝对路径确保在部署后能正确获取文件
+    const response = await fetch('/CHANGELOG.md')
+    if (!response.ok) {
+      throw new Error('Failed to fetch changelog')
+    }
     let changelogContent = await response.text()
-
-    // 删除顶部的 "# Changelog" 标题
-    changelogContent = changelogContent.replace(/^# Changelog\r?\n\r?\n?/m, '')
 
     // 删除 "## Changelog" 部分及其自动生成说明
     changelogContent = changelogContent.replace(/## Changelog[\s\S]*$/, '')
 
-    // 转换为 HTML 格式
-    const htmlContent = changelogContent
-      .replace(/##? \[([^\]]+)\]\([^)]*\) \(([^)]+)\)/gm, '<h3 style="margin-top: 20px; margin-bottom: 10px;">$1 - $2</h3>')
-      .replace(/### (Features|Bug Fixes)/gm, '<h4 style="margin-top: 15px; margin-bottom: 8px; color: var(--t1);">$1</h4>')
-      .replace(/\* (.+?) \(\[.+?\]\(.+?\)\)/gm, '<p style="margin: 5px 0; padding-left: 20px;">• $1</p>')
-      .replace(/\n\n/g, '<br>')
+    // 使用 marked 解析 Markdown
+    const htmlContent = marked.parse(changelogContent)
 
     showDialog({
       title: '📋 更新日志',
@@ -194,7 +192,7 @@ async function showUpdate() {
   } catch (error) {
     showDialog({
       title: '❌ 错误',
-      body: '<p>无法加载更新日志，请稍后重试。</p>',
+      body: `<p>无法加载更新日志: ${error.message}</p>`,
       actions: [{ label: '关闭', cls: 'btn-p' }]
     })
   }
