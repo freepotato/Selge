@@ -49,7 +49,7 @@
 
       <div class="mt24">
         <div class="fb mb16" style="align-items:center">
-          <div class="sec-label">历险热力图</div>
+          <div class="sec-label" style="transform: translateY(7px);">历险热力图</div>
           <div class="hm-range-sel">
             <button class="hm-range-btn" :class="{ active: heatmapWeeks === 4 }" @click="heatmapWeeks = 4">1月</button>
             <button class="hm-range-btn" :class="{ active: heatmapWeeks === 13 }" @click="heatmapWeeks = 13">3月</button>
