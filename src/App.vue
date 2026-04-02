@@ -168,45 +168,36 @@ function showAbout() {
   })
 }
 
-function showUpdate() {
-  // 模拟读取 CHANGELOG.MD 的内容
-  // 实际部署时，这里应该使用 import 或 fetch 来读取真实文件
-  let changelogContent = `## Changelog
+async function showUpdate() {
+  try {
+    const response = await fetch('./CHANGELOG.md')
+    let changelogContent = await response.text()
 
-All notable changes to this project will be documented in this file.
+    // 删除顶部的 "# Changelog" 标题
+    changelogContent = changelogContent.replace(/^# Changelog\r?\n\r?\n?/m, '')
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+    // 删除 "## Changelog" 部分及其自动生成说明
+    changelogContent = changelogContent.replace(/## Changelog[\s\S]*$/, '')
 
-### [0.6.11] - 2026-04-02
-- 优化了移动端加载速度
-- 修复了热力图悬浮框被遮挡的问题
-- 改进了随笔编辑功能
+    // 转换为 HTML 格式
+    const htmlContent = changelogContent
+      .replace(/##? \[([^\]]+)\]\([^)]*\) \(([^)]+)\)/gm, '<h3 style="margin-top: 20px; margin-bottom: 10px;">$1 - $2</h3>')
+      .replace(/### (Features|Bug Fixes)/gm, '<h4 style="margin-top: 15px; margin-bottom: 8px; color: var(--t1);">$1</h4>')
+      .replace(/\* (.+?) \(\[.+?\]\(.+?\)\)/gm, '<p style="margin: 5px 0; padding-left: 20px;">• $1</p>')
+      .replace(/\n\n/g, '<br>')
 
-### [0.6.10] - 2026-04-01
-- 修复了版本号显示问题
-- 添加了每日一句的日期显示
-- 改进了导航栏的顺序
-
-### [0.6.9] - 2026-03-31
-- 修复了登录后跳转的问题
-- 改进了随笔功能
-- 添加了成就系统
-`
-
-  // 删除 "## Changelog" 标题和它下面的自动生成说明
-  changelogContent = changelogContent.replace(/## Changelog[\s\S]*?### \[/, '### [')
-
-  // 转换为 HTML 格式
-  const htmlContent = changelogContent
-    .replace(/### \[(.*?)\] - (.*?)$/gm, '<h3 style="margin-top: 20px; margin-bottom: 10px;">$1 - $2</h3>')
-    .replace(/- (.*?)$/gm, '<p style="margin: 5px 0; padding-left: 20px;">• $1</p>')
-
-  showDialog({
-    title: '📋 更新日志',
-    body: `<div style="font-size:12px;line-height:1.6;color:var(--t2);max-height:400px;overflow-y:auto;padding-right:10px">${htmlContent}</div>`,
-    actions: [{ label: '关闭', cls: 'btn-p' }]
-  })
+    showDialog({
+      title: '📋 更新日志',
+      body: `<div style="font-size:12px;line-height:1.6;color:var(--t2);max-height:400px;overflow-y:auto;padding-right:10px">${htmlContent}</div>`,
+      actions: [{ label: '关闭', cls: 'btn-p' }]
+    })
+  } catch (error) {
+    showDialog({
+      title: '❌ 错误',
+      body: '<p>无法加载更新日志，请稍后重试。</p>',
+      actions: [{ label: '关闭', cls: 'btn-p' }]
+    })
+  }
 }
 
 // 处理来自子组件的事件

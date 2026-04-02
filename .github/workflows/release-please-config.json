@@ -1,4 +1,3 @@
 {
-  "bump-patch-for-minor-pre-release": true,
-  "extra-types": ["feat", "fix", "perf", "style"]
+  "bump-patch-for-minor-pre-release": true
 }
