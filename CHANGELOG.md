@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.0](https://github.com/freepotato/Selge/compare/v0.6.11...v0.7.0) (2026-04-02)
+
+
+### Features
+
+* 在页脚增加了See update超链接用于查看更新日志 ([d8d9111](https://github.com/freepotato/Selge/commit/d8d9111e40e58f0ad28c2aa2cfbf3ed2f4e81291))
+
+
+### Performance Improvements
+
+* 优化了网站整体加载速度 | 使用manuelChunk分隔代码，动态载入，使用esbuild压缩代码，启用cssCodeSplit，禁用sourcemap ([ad8a109](https://github.com/freepotato/Selge/commit/ad8a109cf862a086ec3d5351357f661a5d0fbfe1))
+* 等待云端信息改为异步加载界面 ([ad39ad3](https://github.com/freepotato/Selge/commit/ad39ad35e647d274bf1cd1f0a7ee6d525f566d46))
+
 ## [0.6.11](https://github.com/freepotato/Selge/compare/v0.6.10...v0.6.11) (2026-04-01)
 
 
