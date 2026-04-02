@@ -221,7 +221,7 @@ a{color:inherit;text-decoration:none}
 .pinned-card-count{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:700;color:var(--ac)}
 .daily-quote{background:var(--acbg);border:1px solid var(--acbd);border-radius:var(--r);padding:16px 20px;margin-bottom:24px;position:relative}
 .daily-quote-text{font-family:'Noto Serif SC',serif;font-size:15px;color:var(--t2);line-height:1.8;margin-bottom:8px}
-.daily-quote-date{font-size:11px;color:var(--t4);font-family:'JetBrains Mono',monospace}
+.daily-quote-date{font-size:12px;color:var(--t1);margin-top:8px;text-align:left;padding-left:9px}
 .daily-quote-link{position:absolute;right:16px;bottom:12px;font-size:11px;color:var(--t3);cursor:pointer}
 .daily-quote-link:hover{color:var(--ac)}
 .heatmap-scroll{overflow-x:auto;padding-bottom:20px;padding-left:20px}

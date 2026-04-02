@@ -6,7 +6,7 @@
         <div class="char-banner-overlay"></div>
         <div class="char-banner-content">
           <div class="daily-quote-text" style="font-size:16px;line-height:1.6">「{{ dailyQuote }}」</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:8px;text-shadow:0 1px 2px rgba(0,0,0,0.15);text-align:right">{{ todayDate }}</div>
+          <div class="daily-quote-date" >{{ todayDate }}</div>
         </div>
       </div>
 
