@@ -1,16 +1,16 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, defineAsyncComponent } from 'vue'
 import { useStore } from './stores/cloudStore.js'
 import { getMe } from './utils/authApi.js'
 
-// 导入页面组件
-import CharacterPage from './pages/CharacterPage.vue'
-import AdventurePage from './pages/AdventurePage.vue'
-import EssaysPage from './pages/EssaysPage.vue'
-import AchievementsPage from './pages/AchievementsPage.vue'
-import ShopPage from './pages/ShopPage.vue'
-import VaultPage from './pages/VaultPage.vue'
-import SettingsPage from './pages/SettingsPage.vue'
+// 动态导入页面组件（懒加载）
+const CharacterPage = defineAsyncComponent(() => import('./pages/CharacterPage.vue'))
+const AdventurePage = defineAsyncComponent(() => import('./pages/AdventurePage.vue'))
+const EssaysPage = defineAsyncComponent(() => import('./pages/EssaysPage.vue'))
+const AchievementsPage = defineAsyncComponent(() => import('./pages/AchievementsPage.vue'))
+const ShopPage = defineAsyncComponent(() => import('./pages/ShopPage.vue'))
+const VaultPage = defineAsyncComponent(() => import('./pages/VaultPage.vue'))
+const SettingsPage = defineAsyncComponent(() => import('./pages/SettingsPage.vue'))
 import { PhSun, PhUser, PhUserCircle } from '@phosphor-icons/vue'
 
 
