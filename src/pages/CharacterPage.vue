@@ -68,7 +68,7 @@
                   <div class="hm-wd"></div><div class="hm-wd">一</div><div class="hm-wd"></div><div class="hm-wd">三</div><div class="hm-wd"></div><div class="hm-wd">五</div><div class="hm-wd"></div>
                 </div>
                 <div v-for="(col, i) in heatmapData.cols" :key="i" class="hm-col">
-                  <div v-for="(d, j) in col" :key="j" class="hm-cell" :data-l="heatmapData.lv(heatmapData.countMap[heatmapData.localDateStr(d)] || 0)" :data-tip="(heatmapData.countMap[heatmapData.localDateStr(d)] || 0) + ' 次历险 · ' + d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })" :style="{ opacity: d > heatmapData.todayD ? 0.3 : 1 }"></div>
+                  <div v-for="(d, j) in col" :key="j" class="hm-cell" :data-l="heatmapData.lv(heatmapData.countMap[heatmapData.localDateStr(d)] || 0)" :style="{ opacity: d > heatmapData.todayD ? 0.3 : 1 }" @mouseenter="showTooltip($event, (heatmapData.countMap[heatmapData.localDateStr(d)] || 0) + ' 次历险 · ' + d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }))" @mouseleave="hideTooltip"></div>
                 </div>
               </div>
             </div>
@@ -90,11 +90,16 @@
         </div>
       </div>
     </div>
+
+    <!-- 悬浮框 -->
+    <div v-if="tooltipVisible" class="hm-tooltip" :style="{ left: tooltipX + 'px', top: tooltipY + 'px' }">
+      {{ tooltipText }}
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from '../stores/cloudStore.js'
 
 const props = defineProps({
@@ -104,6 +109,10 @@ const props = defineProps({
 const { state, XP_TABLE, COIN_SVG, DAILY_QUOTES, getLevel, getLevelTitle, getAdvCounts, fmtDate } = useStore()
 
 const heatmapWeeks = ref(26)
+const tooltipVisible = ref(false)
+const tooltipText = ref('')
+const tooltipX = ref(0)
+const tooltipY = ref(0)
 
 const currentLevel = computed(() => getLevel(state.hero.xp))
 const levelTitle = computed(() => getLevelTitle(currentLevel.value))
@@ -158,4 +167,16 @@ const recentActivity = computed(() => {
     ...state.essays.filter(e => e.submitted).map(e => ({ ts: e.ts, type: 'essay', data: e }))]
     .sort((a, b) => b.ts - a.ts).slice(0, 8)
 })
+
+function showTooltip(event, text) {
+  const rect = event.target.getBoundingClientRect()
+  tooltipText.value = text
+  tooltipX.value = rect.left + rect.width / 2
+  tooltipY.value = rect.top - 10
+  tooltipVisible.value = true
+}
+
+function hideTooltip() {
+  tooltipVisible.value = false
+}
 </script>
