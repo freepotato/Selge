@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/freepotato/Selge/compare/v0.7.0...v0.7.1) (2026-04-02)
+
+
+### Bug Fixes
+
+* 修复更新日志的显示 ([ab02d73](https://github.com/freepotato/Selge/commit/ab02d73ff5b795c7e25a22fad7a36328a2d52391))
+
 ## [0.7.0](https://github.com/freepotato/Selge/compare/v0.6.11...v0.7.0) (2026-04-02)
 
 
