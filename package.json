@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node -e \"const fs = require('fs'); const path = require('path'); const src = path.join(__dirname, 'CHANGELOG.md'); const dest = path.join(__dirname, 'dist', 'CHANGELOG.md'); fs.copyFileSync(src, dest); console.log('Copied CHANGELOG.md to dist directory');\"",
     "preview": "vite preview"
   },
   "dependencies": {
