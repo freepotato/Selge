@@ -66,7 +66,7 @@ export async function onRequestGet(context) {
   const redirect = url.searchParams.get('redirect') || '/'
   console.log('Redirecting to:', redirect)
   
-  // 构建重定向 URL - 使用基础 URL 而不是完整的 request URL
+  // 构建重定向 URL - 使用完整的基础 URL
   const baseUrl = new URL(context.request.url)
   baseUrl.pathname = ''
   baseUrl.search = ''

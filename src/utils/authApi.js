@@ -5,13 +5,21 @@ const API_BASE = '/api'
 // 获取当前用户信息
 export async function getMe() {
   try {
-    const res = await fetch(`${API_BASE}/login`, { headers: { 'Accept': 'application/json' } })
-    if (res.status === 401) {
+    const res = await fetch(`${API_BASE}/login`, { 
+      headers: { 'Accept': 'application/json' },
+      redirect: 'manual' // 手动处理重定向
+    })
+    
+    if (res.status === 401 || res.status === 302) {
+      // 401: 未登录
+      // 302: 重定向到登录页面（Cloudflare Access）
       return { authenticated: false }
     }
+    
     if (!res.ok) {
       return { authenticated: false }
     }
+    
     const data = await res.json()
     const username = data.email.split('@')[0]
     return { authenticated: true, email: data.email, username }
