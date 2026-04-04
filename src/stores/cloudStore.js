@@ -45,12 +45,6 @@ const ACHIEVEMENTS = {
     { id: 'w4', icon: '🏞️', name: '自然漫步者', desc: '散步 90 次', req: 90 },
     { id: 'w5', icon: '🌍', name: '四季行者', desc: '散步 365 次', req: 365 }
   ],
-  total: [
-    { id: 't1', icon: '⚔️', name: '初出茅庐', desc: '第一次历险', req: 1 },
-    { id: 't2', icon: '🛡️', name: '渐入佳境', desc: '历险 10 次', req: 10 },
-    { id: 't3', icon: '🏅', name: '身经百战', desc: '历险 100 次', req: 100 },
-    { id: 't4', icon: '👑', name: '传奇', desc: '历险 365 次', req: 365 }
-  ],
   adventure: [
     { id: 'a1', icon: '🗺️', name: '初出茅庐', desc: '完成第一次历险', req: 1 },
     { id: 'a2', icon: '🧭', name: '渐入佳境', desc: '完成 30 次历险', req: 30 },
