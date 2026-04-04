@@ -43,6 +43,13 @@ const vaultAddCatShow = ref(false)
 const vaultNewCatName = ref('')
 const vaultUploadingId = ref(null)
 
+// 热力图悬浮框
+const tooltip = ref(null)
+const tooltipVisible = ref(false)
+const tooltipContent = ref('')
+const tooltipX = ref(0)
+const tooltipY = ref(0)
+
 const vaultDetailItem = computed(() => state.vault.items.find(i => i.id === vaultDetailId.value))
 
 function openVaultViewer(idx) { vaultViewerIdx.value = idx }
@@ -199,6 +206,26 @@ function handleKeydown(e) {
 }
 onMounted(() => { document.addEventListener('keydown', handleKeydown) })
 onBeforeUnmount(() => { document.removeEventListener('keydown', handleKeydown) })
+
+// 热力图悬浮框函数
+function showHeatmapTooltip(event, date) {
+  const count = heatmapData.value.countMap[heatmapData.value.localDateStr(date)] || 0
+  const dateStr = date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })
+  tooltipContent.value = `${dateStr} · ${count} 次历险`
+  moveHeatmapTooltip(event)
+  tooltipVisible.value = true
+}
+
+function moveHeatmapTooltip(event) {
+  // 计算悬浮框位置，使其显示在鼠标上方
+  const rect = event.target.getBoundingClientRect()
+  tooltipX.value = event.clientX - 50 // 居中显示
+  tooltipY.value = event.clientY - 40 // 显示在上方
+}
+
+function hideHeatmapTooltip() {
+  tooltipVisible.value = false
+}
 
 function applyTheme(t) {
   state.theme = t
@@ -1008,6 +1035,19 @@ function clearData() {
     </div>
   </div>
 
+  <!-- 热力图悬浮框 -->
+  <div 
+    ref="tooltip" 
+    class="heatmap-tooltip" 
+    :class="{ show: tooltipVisible }"
+    :style="{
+      left: tooltipX + 'px',
+      top: tooltipY + 'px'
+    }"
+  >
+    {{ tooltipContent }}
+  </div>
+
   <!-- Character Page -->
   <div class="page" :class="{ active: currentPage === 'character' }">
     <div class="wrap">
@@ -1077,7 +1117,16 @@ function clearData() {
                   <div class="hm-wd"></div><div class="hm-wd">一</div><div class="hm-wd"></div><div class="hm-wd">三</div><div class="hm-wd"></div><div class="hm-wd">五</div><div class="hm-wd"></div>
                 </div>
                 <div v-for="(col, i) in heatmapData.cols" :key="i" class="hm-col">
-                  <div v-for="(d, j) in col" :key="j" class="hm-cell" :data-l="heatmapData.lv(heatmapData.countMap[heatmapData.localDateStr(d)] || 0)" :data-tip="(heatmapData.countMap[heatmapData.localDateStr(d)] || 0) + ' 次历险 · ' + d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })" :style="{ opacity: d > heatmapData.todayD ? 0.3 : 1 }"></div>
+                  <div 
+                    v-for="(d, j) in col" 
+                    :key="j" 
+                    class="hm-cell" 
+                    :data-l="heatmapData.lv(heatmapData.countMap[heatmapData.localDateStr(d)] || 0)" 
+                    :style="{ opacity: d > heatmapData.todayD ? 0.3 : 1 }"
+                    @mouseenter="showHeatmapTooltip($event, d)"
+                    @mousemove="moveHeatmapTooltip($event)"
+                    @mouseleave="hideHeatmapTooltip()"
+                  ></div>
                 </div>
               </div>
             </div>
