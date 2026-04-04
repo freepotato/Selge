@@ -1,7 +1,7 @@
-// GET /api/load - 从 KV 读取内容（按用户隔离）
+// GET /api/load - 从 D1 读取内容（按用户隔离）
 export async function onRequestGet(context) {
   const { request, env } = context
-  const kv = env.selge_kv
+  const db = env.selge_d1
 
   const userEmail = request.headers.get('cf-access-authenticated-user-email')
   if (!userEmail) {
@@ -22,10 +22,11 @@ export async function onRequestGet(context) {
       })
     }
 
-    const key = `${userEmail}:${id}`
-    const value = await kv.get(key, { type: 'text' })
+    // 从 D1 数据库读取数据
+    const stmt = db.prepare(`SELECT data FROM user_data WHERE user_email = ? AND data_id = ?`)
+    const result = await stmt.bind(userEmail, id).first()
 
-    if (value === null) {
+    if (!result) {
       return new Response(JSON.stringify({ error: 'Not found' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
@@ -34,9 +35,9 @@ export async function onRequestGet(context) {
 
     let data
     try {
-      data = JSON.parse(value)
+      data = JSON.parse(result.data)
     } catch {
-      data = value
+      data = result.data
     }
 
     return new Response(JSON.stringify({ success: true, data }), {

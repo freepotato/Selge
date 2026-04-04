@@ -115,14 +115,29 @@ onMounted(() => {
       const me = await getMe()
       user.value = me
       if (me.authenticated) {
-        // 已登录，从云端加载数据（会先读取 localStorage 缓存）
+        // 已登录，先加载本地缓存快速显示
         try {
           await load()
-          // 加载完成后，确保 cloudLoaded 为 true，允许保存数据
-          console.log('Login successful, data loaded from cloud')
+          console.log('Local data loaded')
         } catch (e) {
-          console.error('加载云端数据失败:', e)
+          console.error('加载本地数据失败:', e)
         }
+        
+        // 后台静默同步云端数据
+        setTimeout(async () => {
+          showToast('正在同步云端数据...', 'blue', '☁️')
+          try {
+            const result = await syncFromCloud()
+            if (result.success) {
+              showToast(result.message, 'green', '✓')
+            } else {
+              showToast(result.message, 'orange', '⚠️')
+            }
+          } catch (e) {
+            console.error('同步云端数据失败:', e)
+            showToast('同步云端数据失败', 'orange', '⚠️')
+          }
+        }, 1000) // 延迟1秒后执行，让页面先渲染完成
       }
     } catch (e) {
       console.error('获取用户信息失败:', e)
