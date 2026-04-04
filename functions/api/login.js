@@ -2,33 +2,45 @@
 // - 未登录：返回 401，Cloudflare Access 拦截显示登录页
 // - 已登录 + fetch 请求：返回 JSON 用户信息
 // - 已登录 + 浏览器直接访问：返回 HTML 中转页跳转首页
+// - 开发模式：支持 dev_login cookie 进行本地测试
 export async function onRequestGet(context) {
   const userEmail = context.request.headers.get('cf-access-authenticated-user-email')
   const url = new URL(context.request.url)
   const accept = context.request.headers.get('Accept') || ''
+  const cookieHeader = context.request.headers.get('Cookie') || ''
+  
+  // 检查是否是开发模式（通过 cookie）
+  const isDevMode = cookieHeader.includes('dev_login=true') || url.searchParams.get('dev') === 'true'
+  
+  // 开发模式下允许模拟登录
+  const devEmail = 'dev@localhost'
+  
+  // 使用开发模式的邮箱（如果启用）
+  const effectiveEmail = isDevMode ? devEmail : userEmail
   
   console.log('Login request received:', {
     userEmail: userEmail ? '****' + userEmail.slice(-10) : null,
+    devMode: isDevMode,
+    effectiveEmail: effectiveEmail ? '****' + effectiveEmail.slice(-10) : null,
     url: url.pathname + url.search,
-    accept: accept,
-    headers: Object.fromEntries(context.request.headers.entries())
+    accept: accept
   })
 
-  if (!userEmail) {
+  if (!effectiveEmail) {
     console.log('No user email found, returning 401')
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    return new Response(JSON.stringify({ error: 'Unauthorized', devMode: isDevMode }), {
       status: 401,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' }
     })
   }
 
   // 已登录
-  console.log('User is authenticated:', userEmail)
+  console.log('User is authenticated:', effectiveEmail)
 
   if (accept.includes('application/json')) {
     // fetch 请求：返回 JSON 用户信息
     console.log('Returning JSON user info')
-    return new Response(JSON.stringify({ authenticated: true, email: userEmail }), {
+    return new Response(JSON.stringify({ authenticated: true, email: effectiveEmail, devMode: isDevMode }), {
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' }
     })
   }
@@ -66,8 +78,11 @@ export async function onRequestGet(context) {
   const redirect = url.searchParams.get('redirect') || '/'
   console.log('Redirecting to:', redirect)
   
-  // 更新 HTML 中的重定向 URL，添加 logged_in 参数
-  const htmlWithRedirect = html.replace('window.location.href="/"', `window.location.href="${redirect}?logged_in=true"`)
+  // 更新 HTML 中的重定向 URL，添加 logged_in 参数和开发模式标记
+  const redirectUrl = isDevMode 
+    ? `${redirect}?logged_in=true&dev=true` 
+    : `${redirect}?logged_in=true`
+  const htmlWithRedirect = html.replace('window.location.href="/"', `window.location.href="${redirectUrl}"`)
   
   return new Response(htmlWithRedirect, {
     headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache, no-store' }

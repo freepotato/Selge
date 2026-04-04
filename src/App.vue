@@ -39,16 +39,26 @@ function login() {
 
 // 检查 URL 中是否有登录成功的标记
 function checkLoginStatus() {
-  // 检查是否从登录页面跳转回来
   const urlParams = new URLSearchParams(window.location.search)
-  if (urlParams.has('logged_in')) {
-    // 清除 URL 参数
+  const hasLoggedIn = urlParams.has('logged_in')
+  const isDevMode = urlParams.get('dev') === 'true'
+  
+  if (hasLoggedIn) {
+    // 清除 URL 参数（保留 dev 参数用于后续处理）
     const newUrl = new URL(window.location.href)
     newUrl.searchParams.delete('logged_in')
     window.history.replaceState({}, '', newUrl.toString())
     
     // 立即检查登录状态
     updateUserStatus()
+  }
+  
+  // 如果是开发模式，也更新用户状态
+  if (isDevMode) {
+    user.value = { authenticated: true, username: 'dev', email: 'dev@localhost' }
+    showToast('开发模式已启用', 'green', '🔧')
+    // 尝试加载数据（本地缓存）
+    load().catch(e => console.log('开发模式：使用本地数据', e))
   }
 }
 

@@ -1,10 +1,19 @@
 // GET /api - 登录成功后的中转页面
 // 确认登录成功后自动返回主页
+// - 生产模式：需要 Cloudflare Access 验证
+// - 开发模式：通过 dev 参数或 dev_login cookie 模拟
 export async function onRequestGet(context) {
   const userEmail = context.request.headers.get('cf-access-authenticated-user-email')
+  const url = new URL(context.request.url)
+  const cookieHeader = context.request.headers.get('Cookie') || ''
+  
+  // 检查是否是开发模式
+  const isDevMode = cookieHeader.includes('dev_login=true') || url.searchParams.get('dev') === 'true'
+  const devEmail = 'dev@localhost'
+  const effectiveEmail = isDevMode ? devEmail : userEmail
 
-  if (!userEmail) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+  if (!effectiveEmail) {
+    return new Response(JSON.stringify({ error: 'Unauthorized', devMode: isDevMode }), {
       status: 401,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' }
     })
@@ -38,7 +47,11 @@ export async function onRequestGet(context) {
 </body>
 </html>`
 
-  return new Response(html, {
+  // 更新重定向 URL 包含开发模式标记
+  const redirectUrl = isDevMode ? '/?logged_in=true&dev=true' : '/?logged_in=true'
+  const htmlWithRedirect = html.replace("window.location.href='/'", `window.location.href='${redirectUrl}'`)
+
+  return new Response(htmlWithRedirect, {
     headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache, no-store' }
   })
 }
