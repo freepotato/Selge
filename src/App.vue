@@ -41,24 +41,26 @@ function login() {
 function checkLoginStatus() {
   const urlParams = new URLSearchParams(window.location.search)
   const hasLoggedIn = urlParams.has('logged_in')
-  const isDevMode = urlParams.get('dev') === 'true'
   
   if (hasLoggedIn) {
-    // 清除 URL 参数（保留 dev 参数用于后续处理）
+    // 清除 URL 参数
     const newUrl = new URL(window.location.href)
     newUrl.searchParams.delete('logged_in')
+    newUrl.searchParams.delete('dev')
     window.history.replaceState({}, '', newUrl.toString())
     
     // 立即检查登录状态
     updateUserStatus()
-  }
-  
-  // 如果是开发模式，也更新用户状态
-  if (isDevMode) {
-    user.value = { authenticated: true, username: 'dev', email: 'dev@localhost' }
-    showToast('开发模式已启用', 'green', '🔧')
-    // 尝试加载数据（本地缓存）
-    load().catch(e => console.log('开发模式：使用本地数据', e))
+  } else {
+    // 只有在没有登录标记的情况下才检查开发模式
+    // 检查是否是开发模式（通过 cookie）
+    const isDevMode = document.cookie.includes('dev_login=true')
+    if (isDevMode && !user.value.authenticated) {
+      user.value = { authenticated: true, username: 'dev', email: 'dev@localhost' }
+      showToast('开发模式已启用', 'green', '🔧')
+      // 尝试加载数据（本地缓存）
+      load().catch(e => console.log('开发模式：使用本地数据', e))
+    }
   }
 }
 
