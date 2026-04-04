@@ -114,7 +114,7 @@ onBeforeUnmount(() => {
 
 /* 行内代码 */
 .tiptap-content code {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
   background: var(--bg2, #f5f5f5);
   padding: 1px 5px;
   border-radius: 4px;
@@ -129,7 +129,7 @@ onBeforeUnmount(() => {
   padding: 12px 16px;
   margin: 8px 0;
   overflow-x: auto;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
   font-size: 13px;
   line-height: 1.6;
 }
