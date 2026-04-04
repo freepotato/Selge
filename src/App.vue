@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, defineAsyncComponent } from 'vue'
-import { useStore } from './stores/cloudStore.js'
+import { useStore, updateStorageKey } from './stores/cloudStore.js'
 import { getMe } from './utils/authApi.js'
 import { marked } from 'marked'
 
@@ -59,6 +59,8 @@ async function updateUserStatus() {
   const me = await getMe()
   if (me.authenticated) {
     user.value = { authenticated: true, username: me.username, email: me.email }
+    // 更新存储键以包含用户邮箱
+    updateStorageKey(me.email)
     showToast('登录成功！', 'green', '✓')
     
     // 登录成功后从云端加载数据
@@ -105,6 +107,8 @@ onMounted(async () => {
   if (me.authenticated && !user.value.authenticated) {
     // Cloudflare Access 登录成功，但前端状态还是未登录
     user.value = { authenticated: true, username: me.username, email: me.email }
+    // 更新存储键以包含用户邮箱
+    updateStorageKey(me.email)
     showToast('登录成功！', 'green', '✓')
     try {
       await load()
@@ -121,6 +125,8 @@ onMounted(async () => {
       const me = await getMe()
       user.value = me
       if (me.authenticated) {
+        // 更新存储键以包含用户邮箱
+        updateStorageKey(me.email)
         // 已登录，先加载本地缓存快速显示
         try {
           await load()
@@ -131,6 +137,9 @@ onMounted(async () => {
         
         // 后台静默同步云端数据 - load() 函数已经包含了同步逻辑
         console.log('Data already synchronized via load()')
+      } else {
+        // 未登录，重置存储键
+        updateStorageKey(null)
       }
     } catch (e) {
       console.error('获取用户信息失败:', e)

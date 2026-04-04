@@ -6,7 +6,8 @@ import { saveData, loadData } from '../utils/authApi.js'
 import { PhBookBookmark, PhBookmarks, PhBookOpen, PhBookOpenUser, PhCalendar, PhCalendarCheck, PhCrownCross, PhFilmReel, PhFilmSlate, PhFootprints, PhGraduationCap, PhGuitar, PhHoodie, PhHourglassMedium, PhLeaf, PhMapPinSimpleArea, PhMountains, PhMusicNote, PhMusicNoteSimple, PhMusicNotesPlus, PhMusicNotesSimple, PhPants, PhPersonSimpleHike, PhPiggyBank, PhPopcorn, PhSneaker, PhStudent, PhTicket, PhTree, PhTrophy } from '@phosphor-icons/vue'
 
 const XP_ESSAY = 20
-const STORAGE_KEY = 'selge_cache'
+// 存储键，将包含用户邮箱以区分不同用户
+let STORAGE_KEY = 'selge_cache'
 
 // 等级表（最高 10 级）
 const XP_TABLE = {}
@@ -193,8 +194,32 @@ function buildSaveData() {
     unlockedAchievements: state.unlockedAchievements,
     vault: state.vault,
     theme: state.theme,
-    _ts: Date.now()
+    _ts: Date.now(),
+    userEmail: currentUserEmail
   }
+}
+
+// 当前用户邮箱
+let currentUserEmail = null
+
+// 更新存储键以包含用户邮箱
+export function updateStorageKey(userEmail) {
+  if (userEmail) {
+    STORAGE_KEY = `selge_cache_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}`
+    currentUserEmail = userEmail
+  } else {
+    STORAGE_KEY = 'selge_cache'
+    currentUserEmail = null
+  }
+}
+
+// 检查用户是否已更改
+function checkUserChanged(data) {
+  if (data.userEmail && data.userEmail !== currentUserEmail) {
+    console.log('User changed from', data.userEmail, 'to', currentUserEmail)
+    return true
+  }
+  return false
 }
 
 // 立即保存到云端（用户操作时调用）
@@ -284,9 +309,19 @@ function applyData(state, data) {
 async function load() {
   // 1. 先加载本地缓存
   const cached = loadFromCache()
-  if (cached) {
+  
+  // 检查用户是否已更改
+  if (cached && checkUserChanged(cached)) {
+    console.log('User changed, clearing old cache')
+    // 用户已更改，清除旧缓存
+    localStorage.removeItem(STORAGE_KEY)
+    // 应用默认状态
+    applyData(state, defaultState())
+  } else if (cached) {
+    // 用户未更改，加载本地缓存
     applyData(state, cached)
   }
+  
   // 无论如何，先标记已加载，允许保存操作
   cloudLoaded = true
 
@@ -294,17 +329,24 @@ async function load() {
   try {
     const result = await loadData('default')
     if (result.success && result.data) {
-      // 对比云端数据和当前数据的更新时间，云端更新则覆盖
-      const cloudTs = result.data._ts || 0
-      const localTs = cached?._ts || 0
-      if (cloudTs >= localTs) {
-        applyData(state, result.data)
-        saveToCache(result.data)
-        console.log('Loaded from cloud (newer)')
-      } else {
-        console.log('Local cache is newer, uploading to cloud...')
-        // 本地数据更新，上传到云端
+      // 检查云端数据的用户是否与当前用户匹配
+      if (result.data.userEmail && result.data.userEmail !== currentUserEmail) {
+        console.log('Cloud data user mismatch, updating...')
+        // 云端数据用户不匹配，使用当前用户的默认状态
         await save()
+      } else {
+        // 对比云端数据和当前数据的更新时间，云端更新则覆盖
+        const cloudTs = result.data._ts || 0
+        const localTs = cached?._ts || 0
+        if (cloudTs >= localTs) {
+          applyData(state, result.data)
+          saveToCache(result.data)
+          console.log('Loaded from cloud (newer)')
+        } else {
+          console.log('Local cache is newer, uploading to cloud...')
+          // 本地数据更新，上传到云端
+          await save()
+        }
       }
     } else if (result.error === 'Unauthorized') {
       console.log('未登录，使用缓存数据')
