@@ -183,15 +183,9 @@ function getAdvCounts(state) {
 
 const state = reactive(defaultState())
 
-// 立即保存到云端（用户操作时调用）
-// 可选的 onSuccess 回调用于显示提示
-// 只有在云端数据加载成功后才能上传，防止默认值覆盖云端数据
-function autoSave(onSuccess) {
-  if (!cloudLoaded) {
-    console.log('Skip save: cloud data not loaded yet')
-    return
-  }
-  const data = {
+// 构建要保存的数据对象
+function buildSaveData() {
+  return {
     hero: state.hero,
     advTypes: state.advTypes,
     adventures: state.adventures,
@@ -201,6 +195,17 @@ function autoSave(onSuccess) {
     theme: state.theme,
     _ts: Date.now()
   }
+}
+
+// 立即保存到云端（用户操作时调用）
+// 可选的 onSuccess 回调用于显示提示
+// 只有在云端数据加载成功后才能上传，防止默认值覆盖云端数据
+function autoSave(onSuccess) {
+  if (!cloudLoaded) {
+    console.log('Skip save: cloud data not loaded yet')
+    return
+  }
+  const data = buildSaveData()
   // 立即写入本地缓存
   saveToCache(data)
   // 异步写入云端
@@ -297,12 +302,17 @@ async function load() {
         saveToCache(result.data)
         console.log('Loaded from cloud (newer)')
       } else {
-        console.log('Local cache is newer, skip cloud data')
+        console.log('Local cache is newer, uploading to cloud...')
+        // 本地数据更新，上传到云端
+        await save()
       }
     } else if (result.error === 'Unauthorized') {
       console.log('未登录，使用缓存数据')
     } else {
-      console.log('云端无数据')
+      console.log('云端无数据，上传本地数据...')
+      // 云端无数据，上传本地数据
+      cloudLoaded = true
+      await save()
     }
   } catch (e) {
     console.error('Load from cloud failed:', e)
@@ -315,19 +325,11 @@ async function save() {
     console.log('Skip save: cloud data not loaded yet')
     return
   }
-  const data = {
-    hero: state.hero,
-    advTypes: state.advTypes,
-    adventures: state.adventures,
-    essays: state.essays,
-    unlockedAchievements: state.unlockedAchievements,
-    vault: state.vault,
-    theme: state.theme,
-    _ts: Date.now()
-  }
+  const data = buildSaveData()
   saveToCache(data)
   try {
     await saveData('default', data)
+    console.log('Saved to cloud')
   } catch (e) {
     console.error('Save to cloud failed:', e)
   }
