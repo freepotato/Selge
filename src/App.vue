@@ -33,27 +33,41 @@ const dialogActions = ref([])
 const toasts = ref([])
 
 function login() {
-  // 重定向到登录页面
-  window.location.href = '/api/login'
-  
-  // 启动登录状态检查计时器
-  const loginCheckInterval = setInterval(async () => {
+  // 重定向到登录页面，添加 redirect 参数
+  window.location.href = '/api/login?redirect=' + encodeURIComponent(window.location.pathname)
+}
+
+// 检查 URL 中是否有登录成功的标记
+function checkLoginStatus() {
+  // 检查是否从登录页面跳转回来
+  const urlParams = new URLSearchParams(window.location.search)
+  if (urlParams.has('logged_in')) {
+    // 清除 URL 参数
+    const newUrl = new URL(window.location.href)
+    newUrl.searchParams.delete('logged_in')
+    window.history.replaceState({}, '', newUrl.toString())
+    
+    // 立即检查登录状态
+    updateUserStatus()
+  }
+}
+
+// 更新用户状态
+async function updateUserStatus() {
+  const me = await getMe()
+  if (me.authenticated) {
+    user.value = { authenticated: true, username: me.username, email: me.email }
+    showToast('登录成功！', 'green', '✓')
+    
+    // 登录成功后从云端加载数据
     try {
-      const me = await getMe()
-      if (me.authenticated) {
-        // 登录成功，清除计时器并返回主页
-        clearInterval(loginCheckInterval)
-        window.location.href = '/'
-      }
+      await load()
+      console.log('Login successful, data loaded from cloud')
     } catch (e) {
-      console.error('检查登录状态失败:', e)
+      console.error('加载云端数据失败:', e)
+      showToast('登录成功但加载数据失败', 'orange', '⚠️')
     }
-  }, 1000) // 每秒检查一次
-  
-  // 1分钟后超时，清除计时器
-  setTimeout(() => {
-    clearInterval(loginCheckInterval)
-  }, 60000)
+  }
 }
 
 function showLogoutConfirm() {
@@ -80,6 +94,9 @@ onMounted(() => {
   document.getElementById('app')?.classList.add('ready')
 
   applyTheme(state.theme)
+
+  // 检查登录状态（处理从登录页面跳转回来的情况）
+  checkLoginStatus()
 
   // 在后台获取用户信息和加载数据
   (async () => {

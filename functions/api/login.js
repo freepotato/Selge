@@ -50,7 +50,14 @@ export async function onRequestGet(context) {
 </body>
 </html>`
 
-  return new Response(html, {
+  // 检查是否有 redirect 参数
+  const url = new URL(context.request.url)
+  const redirect = url.searchParams.get('redirect') || '/'
+  
+  // 更新 HTML 中的重定向 URL，添加 logged_in 参数
+  const htmlWithRedirect = html.replace('window.location.href="/"', `window.location.href="${redirect}?logged_in=true"`)
+  
+  return new Response(htmlWithRedirect, {
     headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache, no-store' }
   })
 }
