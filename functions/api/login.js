@@ -25,11 +25,8 @@ export async function onRequestGet(context) {
   // 已登录
   console.log('User is authenticated:', userEmail)
 
-  const userAgent = context.request.headers.get('User-Agent') || ''
-  const isBrowser = userAgent.includes('Mozilla') || userAgent.includes('Chrome') || userAgent.includes('Safari')
-  
-  if (!isBrowser && accept.includes('application/json')) {
-    // 非浏览器请求：返回 JSON 用户信息
+  if (accept.includes('application/json')) {
+    // fetch 请求：返回 JSON 用户信息
     console.log('Returning JSON user info')
     return new Response(JSON.stringify({ authenticated: true, email: userEmail }), {
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' }

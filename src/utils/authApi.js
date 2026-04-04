@@ -6,13 +6,17 @@ const API_BASE = '/api'
 export async function getMe() {
   try {
     const res = await fetch(`${API_BASE}/login`, { 
-      headers: { 'Accept': 'application/json' },
-      redirect: 'manual' // 手动处理重定向
+      headers: { 'Accept': 'application/json' }
+      // 移除 redirect: 'manual'，让浏览器自动处理重定向
     })
     
-    if (res.status === 401 || res.status === 302) {
+    if (res.status === 401) {
       // 401: 未登录
-      // 302: 重定向到登录页面（Cloudflare Access）
+      return { authenticated: false }
+    }
+    
+    if (res.redirected) {
+      // 如果发生了重定向，说明可能还未登录或需要重新登录
       return { authenticated: false }
     }
     
