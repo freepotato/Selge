@@ -286,14 +286,14 @@ async function load() {
   const cached = loadFromCache()
   if (cached) {
     applyData(state, cached)
-    cloudLoaded = true // 标记已加载，允许保存
   }
+  // 无论如何，先标记已加载，允许保存操作
+  cloudLoaded = true
 
   // 2. 异步从云端加载并对比
   try {
     const result = await loadData('default')
     if (result.success && result.data) {
-      cloudLoaded = true
       // 对比云端数据和当前数据的更新时间，云端更新则覆盖
       const cloudTs = result.data._ts || 0
       const localTs = cached?._ts || 0
@@ -311,7 +311,6 @@ async function load() {
     } else {
       console.log('云端无数据，上传本地数据...')
       // 云端无数据，上传本地数据
-      cloudLoaded = true
       await save()
     }
   } catch (e) {

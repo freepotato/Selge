@@ -129,21 +129,8 @@ onMounted(async () => {
           console.error('加载本地数据失败:', e)
         }
         
-        // 后台静默同步云端数据
-        setTimeout(async () => {
-          showToast('正在同步云端数据...', 'blue', '☁️')
-          try {
-            const result = await syncFromCloud()
-            if (result.success) {
-              showToast(result.message, 'green', '✓')
-            } else {
-              showToast(result.message, 'orange', '⚠️')
-            }
-          } catch (e) {
-            console.error('同步云端数据失败:', e)
-            showToast('同步云端数据失败', 'orange', '⚠️')
-          }
-        }, 1000) // 延迟1秒后执行，让页面先渲染完成
+        // 后台静默同步云端数据 - load() 函数已经包含了同步逻辑
+        console.log('Data already synchronized via load()')
       }
     } catch (e) {
       console.error('获取用户信息失败:', e)
