@@ -2,31 +2,18 @@
 // - 未登录：返回 401，Cloudflare Access 拦截显示登录页
 // - 已登录 + fetch 请求：返回 JSON 用户信息
 // - 已登录 + 浏览器直接访问：返回 HTML 中转页跳转首页
-// - 开发模式：支持 dev_login cookie 进行本地测试
 export async function onRequestGet(context) {
   const userEmail = context.request.headers.get('cf-access-authenticated-user-email')
   const url = new URL(context.request.url)
   const accept = context.request.headers.get('Accept') || ''
-  const cookieHeader = context.request.headers.get('Cookie') || ''
-  
-  // 检查是否是开发模式（只通过 cookie 判断，不通过 URL 参数）
-  const isDevMode = cookieHeader.includes('dev_login=true')
-  
-  // 开发模式下允许模拟登录
-  const devEmail = 'dev@localhost'
-  
-  // 使用开发模式的邮箱（如果启用）
-  const effectiveEmail = isDevMode ? devEmail : userEmail
   
   console.log('Login request received:', {
     userEmail: userEmail ? '****' + userEmail.slice(-10) : null,
-    devMode: isDevMode,
-    effectiveEmail: effectiveEmail ? '****' + effectiveEmail.slice(-10) : null,
     url: url.pathname + url.search,
     accept: accept
   })
 
-  if (!effectiveEmail) {
+  if (!userEmail) {
     console.log('No user email found, returning 401 (will be intercepted by Cloudflare Access)')
     // 直接返回 401，让 Cloudflare Access 拦截并显示登录页面
     return new Response('Unauthorized', {
@@ -36,12 +23,12 @@ export async function onRequestGet(context) {
   }
 
   // 已登录
-  console.log('User is authenticated:', effectiveEmail)
+  console.log('User is authenticated:', userEmail)
 
   if (accept.includes('application/json')) {
     // fetch 请求：返回 JSON 用户信息
     console.log('Returning JSON user info')
-    return new Response(JSON.stringify({ authenticated: true, email: effectiveEmail, devMode: isDevMode }), {
+    return new Response(JSON.stringify({ authenticated: true, email: userEmail }), {
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' }
     })
   }
@@ -85,15 +72,8 @@ export async function onRequestGet(context) {
   baseUrl.search = ''
   const redirectUrl = new URL(redirect, baseUrl.toString())
   
-  // 只在重定向 URL 不包含 logged_in 参数时添加
-  if (!redirectUrl.searchParams.has('logged_in')) {
-    redirectUrl.searchParams.set('logged_in', 'true')
-  }
-  
-  // 只在开发模式下添加 dev 参数
-  if (isDevMode && !redirectUrl.searchParams.has('dev')) {
-    redirectUrl.searchParams.set('dev', 'true')
-  }
+  // 添加 logged_in 参数
+  redirectUrl.searchParams.set('logged_in', 'true')
   
   console.log('Final redirect URL:', redirectUrl.toString())
   

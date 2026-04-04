@@ -51,16 +51,6 @@ function checkLoginStatus() {
     
     // 立即检查登录状态
     updateUserStatus()
-  } else {
-    // 只有在没有登录标记的情况下才检查开发模式
-    // 检查是否是开发模式（通过 cookie）
-    const isDevMode = document.cookie.includes('dev_login=true')
-    if (isDevMode && !user.value.authenticated) {
-      user.value = { authenticated: true, username: 'dev', email: 'dev@localhost' }
-      showToast('开发模式已启用', 'green', '🔧')
-      // 尝试加载数据（本地缓存）
-      load().catch(e => console.log('开发模式：使用本地数据', e))
-    }
   }
 }
 
@@ -101,14 +91,28 @@ function logout() {
 }
 
 // 页面加载时
-onMounted(() => {
+onMounted(async () => {
   // 立即显示界面
   document.getElementById('app')?.classList.add('ready')
 
   applyTheme(state.theme)
 
-  // 检查登录状态（处理从登录页面跳转回来的情况）
+  // 检查 URL 参数（处理从登录页面跳转回来的情况）
   checkLoginStatus()
+
+  // 直接检查一次登录状态（处理 Cloudflare Access 登录后直接返回 API 的情况）
+  const me = await getMe()
+  if (me.authenticated && !user.value.authenticated) {
+    // Cloudflare Access 登录成功，但前端状态还是未登录
+    user.value = { authenticated: true, username: me.username, email: me.email }
+    showToast('登录成功！', 'green', '✓')
+    try {
+      await load()
+      console.log('Login successful, data loaded from cloud')
+    } catch (e) {
+      console.error('加载云端数据失败:', e)
+    }
+  }
 
   // 在后台获取用户信息和加载数据
   (async () => {
