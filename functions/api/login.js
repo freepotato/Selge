@@ -4,8 +4,18 @@
 // - 已登录 + 浏览器直接访问：返回 HTML 中转页跳转首页
 export async function onRequestGet(context) {
   const userEmail = context.request.headers.get('cf-access-authenticated-user-email')
+  const url = new URL(context.request.url)
+  const accept = context.request.headers.get('Accept') || ''
+  
+  console.log('Login request received:', {
+    userEmail: userEmail ? '****' + userEmail.slice(-10) : null,
+    url: url.pathname + url.search,
+    accept: accept,
+    headers: Object.fromEntries(context.request.headers.entries())
+  })
 
   if (!userEmail) {
+    console.log('No user email found, returning 401')
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' }
@@ -13,16 +23,18 @@ export async function onRequestGet(context) {
   }
 
   // 已登录
-  const accept = context.request.headers.get('Accept') || ''
+  console.log('User is authenticated:', userEmail)
 
   if (accept.includes('application/json')) {
     // fetch 请求：返回 JSON 用户信息
+    console.log('Returning JSON user info')
     return new Response(JSON.stringify({ authenticated: true, email: userEmail }), {
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store' }
     })
   }
 
   // 浏览器直接访问（登录后重定向回来）：返回 HTML 中转页
+  console.log('Returning HTML redirect page')
   const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -51,8 +63,8 @@ export async function onRequestGet(context) {
 </html>`
 
   // 检查是否有 redirect 参数
-  const url = new URL(context.request.url)
   const redirect = url.searchParams.get('redirect') || '/'
+  console.log('Redirecting to:', redirect)
   
   // 更新 HTML 中的重定向 URL，添加 logged_in 参数
   const htmlWithRedirect = html.replace('window.location.href="/"', `window.location.href="${redirect}?logged_in=true"`)
