@@ -631,14 +631,12 @@ function addEssayTag() {
   if (!currentEssay.value.tags) currentEssay.value.tags = []
   if (!currentEssay.value.tags.includes(tag)) {
     currentEssay.value.tags.push(tag)
-    saveWithToast()
   }
   essayTagInput.value = ''
 }
 
 function removeEssayTag(index) {
   currentEssay.value.tags.splice(index, 1)
-  saveWithToast()
 }
 
 function deleteEssay() {
@@ -1231,8 +1229,8 @@ function clearData() {
             <div class="md-body" v-html="marked.parse(currentEssay.content || '')"></div>
           </div>
           <div v-else class="card cp">
-            <input class="essay-title-inp" v-model="currentEssay.title" placeholder="标题…" maxlength="60" @blur="saveWithToast" />
-            <div style="margin:12px 0 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:12px;color:var(--t3)">心情</span><div class="mood-row"><button v-for="m in MOODS" :key="m" class="mood-btn" :class="{ on: currentEssay.mood === m }" @click="currentEssay.mood = m; saveWithToast()">{{ m }}</button></div></div>
+            <input class="essay-title-inp" v-model="currentEssay.title" placeholder="标题…" maxlength="60" />
+            <div style="margin:12px 0 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:12px;color:var(--t3)">心情</span><div class="mood-row"><button v-for="m in MOODS" :key="m" class="mood-btn" :class="{ on: currentEssay.mood === m }" @click="currentEssay.mood = m">{{ m }}</button></div></div>
             <div style="margin:12px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <span style="font-size:12px;color:var(--t3)">标签</span>
               <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1">
@@ -1245,7 +1243,7 @@ function clearData() {
                 </div>
               </div>
             </div>
-            <TiptapEditor v-model="currentEssay.content" placeholder="支持 Markdown 语法…" @blur="saveWithToast" />
+            <TiptapEditor v-model="currentEssay.content" placeholder="支持 Markdown 语法…" />
             <div class="fb" style="margin-top:10px"><span style="font-size:11px;color:var(--t4);font-family:monospace">{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字 · 提交后不可修改</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" @click="deleteEssay">删除草稿</button><button class="btn btn-p btn-sm" @click="submitEssay">提交随笔</button></div></div>
           </div>
         </div>
