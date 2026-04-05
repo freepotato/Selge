@@ -10,7 +10,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import TurndownService from 'turndown'
 import { marked } from 'marked'
-import { watch, onBeforeUnmount } from 'vue'
+import { watch, onBeforeUnmount, onMounted } from 'vue'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -49,6 +49,57 @@ const editor = useEditor({
   }
 })
 
+// 监听粘贴事件
+onMounted(() => {
+  const editorElement = document.querySelector('.tiptap-content')
+  if (editorElement) {
+    editorElement.addEventListener('paste', handlePaste)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (editor.value) editor.value.destroy()
+  const editorElement = document.querySelector('.tiptap-content')
+  if (editorElement) {
+    editorElement.removeEventListener('paste', handlePaste)
+  }
+})
+
+// 处理粘贴事件
+function handlePaste(event) {
+  const items = Array.from(event.clipboardData?.items || [])
+  const imageItem = items.find(item => item.type.startsWith('image/'))
+  
+  if (imageItem) {
+    event.preventDefault()
+    const file = imageItem.getAsFile()
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = function(e) {
+        const imageSrc = e.target.result
+        // 生成 Markdown 图片语法
+        const markdownImage = `![Pasted image](${imageSrc})`
+        
+        // 获取当前编辑器内容
+        const currentContent = props.modelValue || ''
+        
+        // 简单处理：直接追加图片到内容末尾
+        // 实际应用中可以考虑插入到光标位置
+        const newContent = currentContent + '\n' + markdownImage + '\n'
+        
+        // 更新模型值
+        emit('update:modelValue', newContent)
+        
+        // 刷新编辑器内容
+        if (editor.value) {
+          editor.value.commands.setContent(marked.parse(newContent))
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+};
+
 // 外部内容变化时同步到编辑器
 watch(() => props.modelValue, (val) => {
   if (!editor.value) return
@@ -60,10 +111,6 @@ watch(() => props.modelValue, (val) => {
 
 // 暴露 editor 实例
 defineExpose({ editor })
-
-onBeforeUnmount(() => {
-  if (editor.value) editor.value.destroy()
-})
 </script>
 
 <style>
@@ -180,6 +227,18 @@ onBeforeUnmount(() => {
   color: var(--ac, #3d6b30);
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* 图片 */
+.tiptap-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 8px 0;
+  border-radius: 4px;
+  border: 1px solid var(--bd, #e5e7eb);
+  padding: 4px;
+  background: var(--sur, #fff);
 }
 
 /* 段落间距 */

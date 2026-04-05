@@ -660,6 +660,15 @@ function deleteEssay() {
   })
 }
 
+// 计算字数（排除图片）
+function countWords(content) {
+  if (!content) return 0
+  // 移除 Markdown 图片语法 ![alt](url)
+  const textWithoutImages = content.replace(/!\[.*?\]\(.*?\)/g, '')
+  // 移除空白字符并计算长度
+  return textWithoutImages.replace(/\s/g, '').length
+}
+
 function submitEssay() {
   if (!currentEssay.value.content.trim()) {
     showToast('内容不能为空', 'warn')
@@ -673,8 +682,8 @@ function submitEssay() {
       { label: '确定提交', cls: 'btn-p', fn: () => {
         currentEssay.value.submitted = true
         currentEssay.value.title = currentEssay.value.title || '无题'
-        // 根据字数计算经验：1字1经验，上限1000
-        const wordCount = currentEssay.value.content.length
+        // 根据字数计算经验：1字1经验，上限1000（排除图片）
+        const wordCount = countWords(currentEssay.value.content)
         const xpGain = Math.min(wordCount, 1000)
         state.hero.xp += xpGain
         saveWithToast()
@@ -1225,7 +1234,7 @@ function clearData() {
               <div class="essay-view-title">{{ currentEssay.title || '无题' }}</div>
               <button class="btn btn-g btn-sm" @click="exportSingleEssay(currentEssay)" style="flex-shrink:0">📥 导出</button>
             </div>
-            <div class="essay-view-meta"><span>{{ currentEssay.mood }}</span><span>{{ fmtDate(currentEssay.date) }}</span><span>{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字</span></div>
+            <div class="essay-view-meta"><span>{{ currentEssay.mood }}</span><span>{{ fmtDate(currentEssay.date) }}</span><span>{{ countWords(currentEssay.content) }} 字</span></div>
             <div class="md-body" v-html="marked.parse(currentEssay.content || '')"></div>
           </div>
           <div v-else class="card cp">
@@ -1244,7 +1253,7 @@ function clearData() {
               </div>
             </div>
             <TiptapEditor v-model="currentEssay.content" placeholder="支持 Markdown 语法…" />
-            <div class="fb" style="margin-top:10px"><span style="font-size:11px;color:var(--t4);font-family:monospace">{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字 · 提交后不可修改</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" @click="deleteEssay">删除草稿</button><button class="btn btn-p btn-sm" @click="submitEssay">提交随笔</button></div></div>
+            <div class="fb" style="margin-top:10px"><span style="font-size:11px;color:var(--t4);font-family:monospace">{{ countWords(currentEssay.content) }} 字 · 提交后不可修改</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" @click="deleteEssay">删除草稿</button><button class="btn btn-p btn-sm" @click="submitEssay">提交随笔</button></div></div>
           </div>
         </div>
       </div>
