@@ -10,7 +10,27 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import TurndownService from 'turndown'
 import { marked } from 'marked'
-import { watch, onBeforeUnmount, onMounted } from 'vue'
+import { watch, onBeforeUnmount, onMounted, ref } from 'vue'
+
+// 自定义 marked 渲染器，处理本地图片
+const renderer = new marked.Renderer()
+const originalImage = renderer.image
+renderer.image = function(href, title, text) {
+  // 处理本地图片
+  if (typeof href === 'string' && href.startsWith('local:')) {
+    const imageId = href.replace('local:', '')
+    const imageSrc = localStorage.getItem('selge_image_' + imageId)
+    if (imageSrc) {
+      return `<img src="${imageSrc}" alt="${text}" title="${title || ''}" style="max-width: 100%; height: auto; display: block; margin: 8px 0; border-radius: 4px; border: 1px solid var(--bd, #e5e7eb); padding: 4px; background: var(--sur, #fff);" />`
+    }
+  }
+  // 处理普通图片
+  return originalImage.call(this, href, title, text)
+}
+
+marked.setOptions({
+  renderer: renderer
+})
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -19,10 +39,36 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'blur'])
 
+// 自定义 turndown 服务，处理本地图片
 const turndown = new TurndownService({
   headingStyle: 'atx',
   codeBlockStyle: 'fenced',
   bulletListMarker: '-'
+})
+
+// 自定义图片处理规则
+turndown.addRule('localImage', {
+  filter: function(node) {
+    return node.nodeName === 'IMG' && node.src && (node.src.startsWith('data:') || node.src.startsWith('local:'))
+  },
+  replacement: function(content, node) {
+    const src = node.src
+    if (src.startsWith('data:')) {
+      // 生成唯一的图片ID
+      const imageId = 'img_' + Date.now() + '_' + Math.floor(Math.random() * 10000)
+      // 保存图片到本地存储
+      try {
+        localStorage.setItem('selge_image_' + imageId, src)
+      } catch (error) {
+        console.error('Failed to save image to localStorage:', error)
+      }
+      return `![${node.alt || 'Pasted image'}](local:${imageId})`
+    } else if (src.startsWith('local:')) {
+      // 已经是本地图片格式
+      return `![${node.alt || 'Pasted image'}](${src})`
+    }
+    return `![${node.alt || 'Image'}](${src})`
+  }
 })
 
 const editor = useEditor({
@@ -57,8 +103,19 @@ const editor = useEditor({
           const reader = new FileReader()
           reader.onload = function(e) {
             const imageSrc = e.target.result
-            // 生成 Markdown 图片语法
-            const markdownImage = `![Pasted image](${imageSrc})`
+            
+            // 生成唯一的图片ID
+            const imageId = 'img_' + Date.now() + '_' + Math.floor(Math.random() * 10000)
+            
+            // 保存图片到本地存储
+            try {
+              localStorage.setItem('selge_image_' + imageId, imageSrc)
+            } catch (error) {
+              console.error('Failed to save image to localStorage:', error)
+            }
+            
+            // 生成 Markdown 图片语法，使用本地存储的图片ID
+            const markdownImage = `![Pasted image](local:${imageId})`
             
             // 获取当前编辑器内容
             const currentContent = props.modelValue || ''
@@ -70,7 +127,7 @@ const editor = useEditor({
             emit('update:modelValue', newContent)
             
             // 刷新编辑器内容
-            if (editor.value) {
+            if (editor.value && editor.value.commands) {
               editor.value.commands.setContent(marked.parse(newContent))
             }
           }

@@ -1,10 +1,30 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { marked } from 'marked'
 import JSZip from 'jszip'
 import { useStore } from './stores/cloudStore.js'
 import { getMe, loadData, saveData, uploadImage, getSignedUrl, getSignedUrls } from './utils/authApi.js'
 import TiptapEditor from './components/TiptapEditor.vue'
+
+// 自定义 marked 渲染器，处理本地图片
+const renderer = new marked.Renderer()
+const originalImage = renderer.image
+renderer.image = function(href, title, text) {
+  // 处理本地图片
+  if (typeof href === 'string' && href.startsWith('local:')) {
+    const imageId = href.replace('local:', '')
+    const imageSrc = localStorage.getItem('selge_image_' + imageId)
+    if (imageSrc) {
+      return `<img src="${imageSrc}" alt="${text}" title="${title || ''}" style="max-width: 100%; height: auto; display: block; margin: 8px 0; border-radius: 4px; border: 1px solid var(--bd, #e5e7eb); padding: 4px; background: var(--sur, #fff);" />`
+    }
+  }
+  // 处理普通图片和 R2 图片
+  return originalImage.call(this, href, title, text)
+}
+
+marked.setOptions({
+  renderer: renderer
+})
 
 const { state, XP_TABLE, XP_ESSAY, MOODS, ACHIEVEMENTS, COIN_SVG, COIN_ITEMS, DAILY_QUOTES, load, save, autoSave, uid, today, fmtDate, randInt, getLevel, getLevelTitle, getAdvCounts } = useStore()
 
@@ -20,6 +40,7 @@ const dialogActions = ref([])
 const toasts = ref([])
 const heatmapWeeks = ref(26)
 const currentEssay = ref(null)
+const essayContentRef = ref(null)
 const essayTagInput = ref('')
 const achFilter = ref('all')
 const newAdvTitle = ref('')
@@ -207,6 +228,31 @@ function handleKeydown(e) {
 onMounted(() => { document.addEventListener('keydown', handleKeydown) })
 onBeforeUnmount(() => { document.removeEventListener('keydown', handleKeydown) })
 
+// 监听 currentEssay 变化，处理 R2 图片路径
+watch(() => currentEssay.value, async (newEssay) => {
+  if (newEssay && newEssay.submitted && essayContentRef.value) {
+    // 渲染 Markdown 内容
+    const html = marked.parse(newEssay.content || '')
+    essayContentRef.value.innerHTML = html
+    
+    // 处理 R2 图片路径
+    const images = essayContentRef.value.querySelectorAll('img')
+    for (const img of images) {
+      const src = img.getAttribute('src')
+      if (src && !src.startsWith('http') && !src.startsWith('local:')) {
+        try {
+          const signedUrl = await getCachedSignedUrl(src)
+          if (signedUrl) {
+            img.setAttribute('src', signedUrl)
+          }
+        } catch (error) {
+          console.error('获取图片签名 URL 失败:', error)
+        }
+      }
+    }
+  }
+}, { deep: true })
+
 // 热力图悬浮框函数
 function showHeatmapTooltip(event, date) {
   const count = heatmapData.value.countMap[heatmapData.value.localDateStr(date)] || 0
@@ -257,6 +303,24 @@ function switchPage(name) {
       if (img.startsWith && img.startsWith('http')) return null
       return img
     })).filter(Boolean)
+    warmSignedUrls(allPaths)
+  }
+  // 进入随笔页面时预热签名 URL
+  else if (name === 'essays') {
+    const allPaths = []
+    state.essays.forEach(essay => {
+      if (essay.content) {
+        // 提取所有非 http 开头的图片路径（R2 图片）
+        const imgRegex = /!\[.*?\]\(([^)]+)\)/g
+        let match
+        while ((match = imgRegex.exec(essay.content)) !== null) {
+          const href = match[1]
+          if (!href.startsWith('http') && !href.startsWith('local:')) {
+            allPaths.push(href)
+          }
+        }
+      }
+    })
     warmSignedUrls(allPaths)
   }
 }
@@ -669,7 +733,7 @@ function countWords(content) {
   return textWithoutImages.replace(/\s/g, '').length
 }
 
-function submitEssay() {
+async function submitEssay() {
   if (!currentEssay.value.content.trim()) {
     showToast('内容不能为空', 'warn')
     return
@@ -679,7 +743,46 @@ function submitEssay() {
     body: '提交后将无法修改，确定吗？',
     actions: [
       { label: '取消', cls: 'btn-g' },
-      { label: '确定提交', cls: 'btn-p', fn: () => {
+      { label: '确定提交', cls: 'btn-p', fn: async () => {
+        // 处理本地图片上传
+        let content = currentEssay.value.content
+        const localImageRegex = /!\[.*?\]\(local:(img_[0-9]+_[0-9]+)\)/g
+        const localImages = []
+        let match
+        
+        // 提取所有本地图片ID
+        while ((match = localImageRegex.exec(content)) !== null) {
+          localImages.push(match[1])
+        }
+        
+        // 上传本地图片到 R2
+        if (localImages.length > 0) {
+          showToast('正在上传图片...', 'green')
+          
+          for (const imageId of localImages) {
+            const imageData = localStorage.getItem('selge_image_' + imageId)
+            if (imageData) {
+              // 将 base64 转换为 Blob
+              const blob = await fetch(imageData).then(res => res.blob())
+              const file = new File([blob], `${imageId}.png`, { type: 'image/png' })
+              
+              try {
+                const result = await uploadImage(file, `essays/${currentEssay.value.id}`)
+                if (result.success && result.path) {
+                  // 替换本地图片链接为 R2 路径
+                  content = content.replace(`local:${imageId}`, result.path)
+                }
+              } catch (error) {
+                console.error('上传图片失败:', error)
+                showToast('部分图片上传失败', 'warn')
+              }
+            }
+          }
+          
+          // 更新随笔内容
+          currentEssay.value.content = content
+        }
+        
         currentEssay.value.submitted = true
         currentEssay.value.title = currentEssay.value.title || '无题'
         // 根据字数计算经验：1字1经验，上限1000（排除图片）
@@ -1235,9 +1338,9 @@ function clearData() {
               <button class="btn btn-g btn-sm" @click="exportSingleEssay(currentEssay)" style="flex-shrink:0">📥 导出</button>
             </div>
             <div class="essay-view-meta"><span>{{ currentEssay.mood }}</span><span>{{ fmtDate(currentEssay.date) }}</span><span>{{ countWords(currentEssay.content) }} 字</span></div>
-            <div class="md-body" v-html="marked.parse(currentEssay.content || '')"></div>
+            <div class="md-body" ref="essayContentRef"></div>
           </div>
-          <div v-else class="card cp">
+          <div v-else-if="currentEssay" class="card cp">
             <input class="essay-title-inp" v-model="currentEssay.title" placeholder="标题…" maxlength="60" />
             <div style="margin:12px 0 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:12px;color:var(--t3)">心情</span><div class="mood-row"><button v-for="m in MOODS" :key="m" class="mood-btn" :class="{ on: currentEssay.mood === m }" @click="currentEssay.mood = m">{{ m }}</button></div></div>
             <div style="margin:12px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -1255,6 +1358,7 @@ function clearData() {
             <TiptapEditor v-model="currentEssay.content" placeholder="支持 Markdown 语法…" />
             <div class="fb" style="margin-top:10px"><span style="font-size:11px;color:var(--t4);font-family:monospace">{{ countWords(currentEssay.content) }} 字 · 提交后不可修改</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" @click="deleteEssay">删除草稿</button><button class="btn btn-p btn-sm" @click="submitEssay">提交随笔</button></div></div>
           </div>
+          <div v-else class="card" style="text-align:center;color:var(--t4);padding:60px 20px"><div style="font-size:32px;margin-bottom:10px">📖</div><div>选择一篇随笔，或新建一篇</div></div>
         </div>
       </div>
     </div>
@@ -1470,7 +1574,6 @@ function clearData() {
     <div class="dlg"><div class="dlg-title" v-html="dialogTitle"></div><div class="dlg-body" v-html="dialogBody"></div><div class="dlg-actions"><button v-for="(action, i) in dialogActions" :key="i" class="btn btn-sm" :class="action.cls" @click="action.fn ? (action.fn(), closeDialog()) : closeDialog()">{{ action.label }}</button></div></div>
   </div>
 
-  
 </template>
 
 <style>
