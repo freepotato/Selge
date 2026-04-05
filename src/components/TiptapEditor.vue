@@ -45,60 +45,45 @@ const editor = useEditor({
   editorProps: {
     attributes: {
       class: 'prose prose-sm sm:prose lg:prose-lg focus:outline-none'
-    }
-  }
-})
-
-// 监听粘贴事件
-onMounted(() => {
-  const editorElement = document.querySelector('.tiptap-content')
-  if (editorElement) {
-    editorElement.addEventListener('paste', handlePaste)
-  }
-})
-
-onBeforeUnmount(() => {
-  if (editor.value) editor.value.destroy()
-  const editorElement = document.querySelector('.tiptap-content')
-  if (editorElement) {
-    editorElement.removeEventListener('paste', handlePaste)
-  }
-})
-
-// 处理粘贴事件
-function handlePaste(event) {
-  const items = Array.from(event.clipboardData?.items || [])
-  const imageItem = items.find(item => item.type.startsWith('image/'))
-  
-  if (imageItem) {
-    event.preventDefault()
-    const file = imageItem.getAsFile()
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = function(e) {
-        const imageSrc = e.target.result
-        // 生成 Markdown 图片语法
-        const markdownImage = `![Pasted image](${imageSrc})`
-        
-        // 获取当前编辑器内容
-        const currentContent = props.modelValue || ''
-        
-        // 简单处理：直接追加图片到内容末尾
-        // 实际应用中可以考虑插入到光标位置
-        const newContent = currentContent + '\n' + markdownImage + '\n'
-        
-        // 更新模型值
-        emit('update:modelValue', newContent)
-        
-        // 刷新编辑器内容
-        if (editor.value) {
-          editor.value.commands.setContent(marked.parse(newContent))
+    },
+    handlePaste: (view, event) => {
+      const items = Array.from(event.clipboardData?.items || [])
+      const imageItem = items.find(item => item.type.startsWith('image/'))
+      
+      if (imageItem) {
+        event.preventDefault()
+        const file = imageItem.getAsFile()
+        if (file) {
+          const reader = new FileReader()
+          reader.onload = function(e) {
+            const imageSrc = e.target.result
+            // 生成 Markdown 图片语法
+            const markdownImage = `![Pasted image](${imageSrc})`
+            
+            // 获取当前编辑器内容
+            const currentContent = props.modelValue || ''
+            
+            // 简单处理：直接追加图片到内容末尾
+            const newContent = currentContent + '\n' + markdownImage + '\n'
+            
+            // 更新模型值
+            emit('update:modelValue', newContent)
+            
+            // 刷新编辑器内容
+            if (editor.value) {
+              editor.value.commands.setContent(marked.parse(newContent))
+            }
+          }
+          reader.readAsDataURL(file)
         }
+        return true
       }
-      reader.readAsDataURL(file)
+      return false
     }
   }
-};
+})
+
+
 
 // 外部内容变化时同步到编辑器
 watch(() => props.modelValue, (val) => {
