@@ -602,8 +602,6 @@ function buyItem(item) {
       { label: '取消', cls: 'btn-g' },
       { label: '确认购买', cls: 'btn-p', fn: () => {
         state.hero.coin -= item.price
-        if (!state.hero.purchasedItems) state.hero.purchasedItems = []
-        state.hero.purchasedItems.push(item.id)
         if (!state.hero.purchaseHistory) state.hero.purchaseHistory = []
         state.hero.purchaseHistory.unshift({ icon: item.icon, name: item.name, price: item.price, date: fmtDate(today()) })
         saveWithToast()
@@ -1279,12 +1277,11 @@ function clearData() {
       <div class="mb24"><div class="page-title">商店</div><div class="page-sub">用金币换取现实中的美好</div></div>
       <div class="char-coin-row"><div class="coin-display" v-html="coinDisplay"></div><div style="font-size:12px;color:var(--t3)">每获得 1 XP 可获得 1 金币，随笔产生的 XP 除外。</div></div>
       <div class="shop-grid">
-        <div v-for="item in COIN_ITEMS" :key="item.id" class="shop-card" :class="{ owned: state.hero.purchasedItems?.includes(item.id) }">
+        <div v-for="item in COIN_ITEMS" :key="item.id" class="shop-card">
           <div class="shop-card-icon">{{ item.icon }}</div><div class="shop-card-name">{{ item.name }}</div><div class="shop-card-real">现实价值 {{ item.realValue }}</div>
           <div class="shop-card-price" v-html="COIN_SVG + ' <strong>' + item.price.toLocaleString() + '</strong>'"></div>
           <div style="font-size:11px;color:var(--t4);margin-bottom:12px">{{ item.desc }}</div>
-          <button v-if="state.hero.purchasedItems?.includes(item.id)" class="btn btn-sm shop-card-btn" disabled>✓ 已拥有</button>
-          <button v-else class="btn btn-sm shop-card-btn" :class="state.hero.coin >= item.price ? 'btn-p' : 'btn-g'" :disabled="state.hero.coin < item.price" @click="buyItem(item)">{{ state.hero.coin >= item.price ? '购买' : '金币不足' }}</button>
+          <button class="btn btn-sm shop-card-btn" :class="state.hero.coin >= item.price ? 'btn-p' : 'btn-g'" :disabled="state.hero.coin < item.price" @click="buyItem(item)">{{ state.hero.coin >= item.price ? '购买' : '金币不足' }}</button>
         </div>
       </div>
       <div style="margin-top:40px;padding-top:24px;border-top:1px solid var(--bd)">
