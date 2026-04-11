@@ -18,6 +18,7 @@ const dialogActions = ref([])
 const toasts = ref([])
 const heatmapWeeks = ref(26)
 const achFilter = ref('all')
+const deletedActivities = ref([])
 const newAdvTitle = ref('')
 const newAdvType = ref('at3')
 const newTypeEmoji = ref('')
@@ -78,6 +79,8 @@ function deleteVaultItemById() {
   if (!item) return
   const isEmpty = !item.name?.trim() && !(item.images?.length)
   if (isEmpty) {
+    // 保存删除的记录到 deletedActivities 数组
+    deletedActivities.value.push({ ts: Date.now(), type: 'vault_deleted', data: item })
     state.vault.items = state.vault.items.filter(x => x.id !== item.id)
     vaultDetailId.value = null
     return
@@ -88,6 +91,8 @@ function deleteVaultItemById() {
     actions: [
       { label: '取消', cls: 'btn-g' },
       { label: '删除', cls: 'btn-dg', fn: () => {
+        // 保存删除的记录到 deletedActivities 数组
+        deletedActivities.value.push({ ts: Date.now(), type: 'vault_deleted', data: item })
         state.vault.items = state.vault.items.filter(x => x.id !== item.id)
         vaultDetailId.value = null
         if (vaultPage.value > vaultTotalPages.value) vaultPage.value = vaultTotalPages.value
@@ -424,6 +429,8 @@ function deleteAdventure(a) {
     actions: [
       { label: '取消', cls: 'btn-g' },
       { label: '删除', cls: 'btn-dg', fn: () => {
+        // 保存删除的记录到 deletedActivities 数组
+        deletedActivities.value.push({ ts: Date.now(), type: 'adv_deleted', data: a })
         state.adventures = state.adventures.filter(x => x.id !== a.id)
         // 扣除对应的 XP 和金币
         state.hero.xp = Math.max(0, state.hero.xp - a.xp)
@@ -584,8 +591,37 @@ const heatmapData = computed(() => {
 })
 
 const recentActivity = computed(() => {
-  return [...state.adventures.map(a => ({ ts: a.ts, type: 'adv', data: a }))]
-    .sort((a, b) => b.ts - a.ts).slice(0, 8)
+  const activities = []
+  
+  // 历险记录
+  state.adventures.forEach(a => {
+    activities.push({ ts: a.ts, type: 'adv', data: a })
+  })
+  
+  // 成就解锁
+  state.unlockedAchievements.forEach(a => {
+    if (typeof a === 'object' && a.id && a.date) {
+      activities.push({ ts: new Date(a.date).getTime(), type: 'achievement', data: a })
+    }
+  })
+  
+  // 商店购买
+  state.hero.purchaseHistory?.forEach(h => {
+    activities.push({ ts: new Date(h.date).getTime(), type: 'purchase', data: h })
+  })
+  
+  // 仓库添加新项目
+  state.vault.items.forEach(item => {
+    activities.push({ ts: item.ts, type: 'vault', data: item })
+  })
+  
+  // 删除操作记录
+  deletedActivities.value.forEach(activity => {
+    activities.push(activity)
+  })
+  
+  // 按时间戳排序，最新的在前
+  return activities.sort((a, b) => b.ts - a.ts).slice(0, 10)
 })
 
 function buyItem(item) {
@@ -947,8 +983,33 @@ function clearData() {
           <div v-if="!recentActivity.length" class="empty"><div class="empty-icon">🌿</div>开始你的第一次历险吧</div>
           <div v-else>
             <div v-for="item in recentActivity" :key="item.ts" class="activity-item">
-              <span style="font-size:20px">{{ item.type === 'adv' ? (state.advTypes.find(t => t.id === item.data.typeId)?.emoji || '📌') : item.data.mood }}</span>
-              <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--t1)">{{ item.data.title || '无题' }}</div><div style="font-size:11px;color:var(--t3);font-family:monospace">{{ fmtDate(item.data.date) }} · {{ item.type === 'adv' ? '+' + item.data.xp + ' XP' : '随笔' }}</div></div>
+              <span style="font-size:20px">
+                {{ item.type === 'adv' ? (state.advTypes.find(t => t.id === item.data.typeId)?.emoji || '📌') : 
+                   item.type === 'adv_deleted' ? '🗑️' : 
+                   item.type === 'achievement' ? '🏆' : 
+                   item.type === 'purchase' ? item.data.icon : 
+                   item.type === 'vault' ? '📦' : 
+                   item.type === 'vault_deleted' ? '🗑️' : '📌' }}
+              </span>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:500;color:var(--t1)">
+                  {{ item.type === 'adv' ? item.data.title : 
+                     item.type === 'adv_deleted' ? '删除历险: ' + item.data.title : 
+                     item.type === 'achievement' ? '成就解锁' : 
+                     item.type === 'purchase' ? '购买 ' + item.data.name : 
+                     item.type === 'vault' ? '添加仓库项目' : 
+                     item.type === 'vault_deleted' ? '删除仓库项目: ' + (item.data.name || '未命名') : '新纪录' }}
+                </div>
+                <div style="font-size:11px;color:var(--t3);font-family:monospace">
+                  {{ fmtDate(item.data.date || new Date(item.ts).toISOString().split('T')[0]) }} · 
+                  {{ item.type === 'adv' ? '+' + item.data.xp + ' XP' : 
+                     item.type === 'adv_deleted' ? '删除' : 
+                     item.type === 'achievement' ? '成就' : 
+                     item.type === 'purchase' ? '-' + item.data.price + ' 金币' : 
+                     item.type === 'vault' ? '仓库' : 
+                     item.type === 'vault_deleted' ? '删除' : '新纪录' }}
+                </div>
+              </div>
             </div>
           </div>
         </div>
