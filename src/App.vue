@@ -395,6 +395,13 @@ function getAchievementUnlockDate(aid) {
   return entry?.date || null
 }
 
+function getAchievementName(aid) {
+  // 遍历所有成就类型，查找匹配的成就
+  const allAchs = [...ACHIEVEMENTS.read, ...ACHIEVEMENTS.movie, ...ACHIEVEMENTS.guitar, ...ACHIEVEMENTS.walk, ...ACHIEVEMENTS.adventure]
+  const achievement = allAchs.find(a => a.id === aid)
+  return achievement?.name || null
+}
+
 const filteredAdventures = computed(() => {
   if (advFilterType.value === 'all') return state.adventures
   return state.adventures.filter(a => a.typeId === advFilterType.value)
@@ -995,7 +1002,7 @@ function clearData() {
                 <div style="font-size:13px;font-weight:500;color:var(--t1)">
                   {{ item.type === 'adv' ? item.data.title : 
                      item.type === 'adv_deleted' ? '删除历险: ' + item.data.title : 
-                     item.type === 'achievement' ? '成就解锁' : 
+                     item.type === 'achievement' ? '成就解锁: ' + (getAchievementName(item.data.id) || '成就') : 
                      item.type === 'purchase' ? '购买 ' + item.data.name : 
                      item.type === 'vault' ? '添加仓库项目' : 
                      item.type === 'vault_deleted' ? '删除仓库项目: ' + (item.data.name || '未命名') : '新纪录' }}
