@@ -1,12 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { marked } from 'marked'
 import JSZip from 'jszip'
 import { useStore } from './stores/cloudStore.js'
 import { getMe, loadData, saveData, uploadImage, getSignedUrl, getSignedUrls } from './utils/authApi.js'
-import TiptapEditor from './components/TiptapEditor.vue'
 
-const { state, XP_TABLE, XP_ESSAY, MOODS, ACHIEVEMENTS, COIN_SVG, COIN_ITEMS, DAILY_QUOTES, load, save, autoSave, uid, today, fmtDate, randInt, getLevel, getLevelTitle, getAdvCounts } = useStore()
+const { state, XP_TABLE, ACHIEVEMENTS, COIN_SVG, COIN_ITEMS, DAILY_QUOTES, load, save, autoSave, uid, today, fmtDate, randInt, getLevel, getLevelTitle, getAdvCounts } = useStore()
 
 // 用户认证状态
 const user = ref({ authenticated: false, username: 'Guest' })
@@ -19,8 +17,6 @@ const dialogBody = ref('')
 const dialogActions = ref([])
 const toasts = ref([])
 const heatmapWeeks = ref(26)
-const currentEssay = ref(null)
-const essayTagInput = ref('')
 const achFilter = ref('all')
 const newAdvTitle = ref('')
 const newAdvType = ref('at3')
@@ -588,8 +584,7 @@ const heatmapData = computed(() => {
 })
 
 const recentActivity = computed(() => {
-  return [...state.adventures.map(a => ({ ts: a.ts, type: 'adv', data: a })),
-    ...state.essays.filter(e => e.submitted).map(e => ({ ts: e.ts, type: 'essay', data: e }))]
+  return [...state.adventures.map(a => ({ ts: a.ts, type: 'adv', data: a }))]
     .sort((a, b) => b.ts - a.ts).slice(0, 8)
 })
 
@@ -606,77 +601,6 @@ function buyItem(item) {
         state.hero.purchaseHistory.unshift({ icon: item.icon, name: item.name, price: item.price, date: fmtDate(today()) })
         saveWithToast()
         showToast(`恭喜获得 ${item.name}！`, 'green', item.icon)
-      }}
-    ]
-  })
-}
-
-function newEssay() {
-  const id = uid()
-  state.essays.unshift({ id, title: '', content: '', mood: '😊', date: today(), ts: Date.now(), submitted: false, tags: [] })
-  currentEssay.value = state.essays[0]
-  saveWithToast()
-}
-
-function openEssay(essay) { 
-  currentEssay.value = essay
-  essayTagInput.value = ''
-}
-
-function addEssayTag() {
-  const tag = essayTagInput.value.trim()
-  if (!tag) return
-  if (!currentEssay.value.tags) currentEssay.value.tags = []
-  if (!currentEssay.value.tags.includes(tag)) {
-    currentEssay.value.tags.push(tag)
-  }
-  essayTagInput.value = ''
-}
-
-function removeEssayTag(index) {
-  currentEssay.value.tags.splice(index, 1)
-}
-
-function deleteEssay() {
-  const isEmpty = !currentEssay.value.title?.trim() && !currentEssay.value.content?.trim() && !(currentEssay.value.tags?.length)
-  if (isEmpty) {
-    state.essays = state.essays.filter(e => e.id !== currentEssay.value.id)
-    currentEssay.value = null
-    return
-  }
-  showDialog({
-    title: '删除草稿',
-    body: '确定删除这篇草稿？',
-    actions: [
-      { label: '取消', cls: 'btn-g' },
-      { label: '删除', cls: 'btn-dg', fn: () => {
-        state.essays = state.essays.filter(e => e.id !== currentEssay.value.id)
-        currentEssay.value = null
-        saveWithToast()
-      }}
-    ]
-  })
-}
-
-function submitEssay() {
-  if (!currentEssay.value.content.trim()) {
-    showToast('内容不能为空', 'warn')
-    return
-  }
-  showDialog({
-    title: '提交随笔',
-    body: '提交后将无法修改，确定吗？',
-    actions: [
-      { label: '取消', cls: 'btn-g' },
-      { label: '确定提交', cls: 'btn-p', fn: () => {
-        currentEssay.value.submitted = true
-        currentEssay.value.title = currentEssay.value.title || '无题'
-        // 根据字数计算经验：1字1经验，上限1000
-        const wordCount = currentEssay.value.content.length
-        const xpGain = Math.min(wordCount, 1000)
-        state.hero.xp += xpGain
-        saveWithToast()
-        showToast(`随笔已提交 +${xpGain} XP`, 'green', '📝')
       }}
     ]
   })
@@ -726,29 +650,15 @@ async function exportZip() {
     hero: state.hero, 
     advTypes: state.advTypes, 
     adventures: state.adventures, 
-    essays: state.essays, 
     unlockedAchievements: state.unlockedAchievements,
     theme: state.theme
   }, null, 2))
-  // Markdown files for essays
-  const essaysFolder = zip.folder('essays')
-  state.essays.filter(e => e.submitted).forEach(e => {
-    const frontmatter = `---
-id: ${e.id}
-title: "${(e.title || '无题').replace(/"/g, '\\"')}"
-date: ${e.date}
-mood: ${e.mood}
-tags: ${JSON.stringify(e.tags || [])}
----
-`
-    essaysFolder.file(`${e.date}-${(e.title || '无题').replace(/[\\/:*?"<>|]/g, '').substring(0, 30)}.md`, frontmatter + (e.content || ''))
-  })
   const content = await zip.generateAsync({ type: 'blob' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(content)
   a.download = `selge-backup-${today()}.zip`
   a.click()
-  showToast('已导出 ZIP（含 JSON + 随笔）', 'green', '📦')
+  showToast('已导出 ZIP（含 JSON）', 'green', '📦')
 }
 
 function exportJson() {
@@ -756,7 +666,6 @@ function exportJson() {
     hero: state.hero, 
     advTypes: state.advTypes, 
     adventures: state.adventures, 
-    essays: state.essays, 
     unlockedAchievements: state.unlockedAchievements,
     theme: state.theme
   }
@@ -768,46 +677,10 @@ function exportJson() {
   showToast('已导出 JSON', 'green', '📄')
 }
 
-function exportMarkdown() {
-  state.essays.filter(e => e.submitted).forEach(e => {
-    const frontmatter = `---
-id: ${e.id}
-title: "${(e.title || '无题').replace(/"/g, '\\"')}"
-date: ${e.date}
-mood: ${e.mood}
-tags: ${JSON.stringify(e.tags || [])}
----
-`
-    const blob = new Blob([frontmatter + (e.content || '')], { type: 'text/markdown' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `${e.date}-${(e.title || '无题').replace(/[\\/:*?"<>|]/g, '').substring(0, 30)}.md`
-    a.click()
-  })
-  showToast(`已导出 ${state.essays.filter(e => e.submitted).length} 篇随笔`, 'green', '📝')
-}
-
-function exportSingleEssay(e) {
-  const frontmatter = `---
-id: ${e.id}
-title: "${(e.title || '无题').replace(/"/g, '\\"')}"
-date: ${e.date}
-mood: ${e.mood}
-tags: ${JSON.stringify(e.tags || [])}
----
-`
-  const blob = new Blob([frontmatter + (e.content || '')], { type: 'text/markdown' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = `${e.date}-${(e.title || '无题').replace(/[\\/:*?"<>|]/g, '').substring(0, 30)}.md`
-  a.click()
-  showToast('已导出随笔', 'green', '📝')
-}
-
 function triggerImport() {
   const input = document.createElement('input')
   input.type = 'file'
-  input.accept = '.json,.zip,.md'
+  input.accept = '.json'
   input.multiple = true
   input.onchange = async (e) => {
     const files = Array.from(e.target.files)
@@ -830,11 +703,6 @@ function triggerImport() {
                 const newAdvs = p.adventures.filter(a => !existingIds.has(a.id))
                 state.adventures = [...state.adventures, ...newAdvs]
               }
-              if (p.essays) {
-                const existingEssays = new Set(state.essays.map(e => e.id))
-                const newEssays = p.essays.filter(e => !existingEssays.has(e.id))
-                state.essays = [...state.essays, ...newEssays]
-              }
               if (p.unlockedAchievements) {
                 const existingIds = new Set(state.unlockedAchievements.map(a => typeof a === 'string' ? a : a.id))
                 const newAchs = (p.unlockedAchievements || []).map(a => typeof a === 'string' ? { id: a, date: null } : a).filter(a => !existingIds.has(a.id))
@@ -842,7 +710,7 @@ function triggerImport() {
               }
               if (p.theme) state.theme = p.theme
               saveWithToast()
-              showToast(`已导入 ${newAdvs.length} 条历险、${newEssays.length} 篇随笔`, 'green', '📥')
+              showToast(`已导入 ${newAdvs.length} 条历险`, 'green', '📥')
             } else {
               showToast('JSON 格式不正确', 'warn')
             }
@@ -851,64 +719,10 @@ function triggerImport() {
           }
         }
         reader.readAsText(file)
-      } else if (ext === 'md') {
-        const reader = new FileReader()
-        reader.onload = (ev) => {
-          try {
-            const content = ev.target.result
-            const parsed = parseMdFrontmatter(content)
-            if (parsed && parsed.id) {
-              const existing = state.essays.find(x => x.id === parsed.id)
-              if (existing) {
-                showToast('随笔已存在，跳过: ' + parsed.title, 'warn')
-              } else {
-                state.essays.push({
-                  id: parsed.id,
-                  title: parsed.title || '无题',
-                  date: parsed.date || today(),
-                  mood: parsed.mood || '😊',
-                  tags: parsed.tags || [],
-                  content: parsed.content || '',
-                  submitted: true,
-                  ts: Date.now()
-                })
-                saveWithToast()
-                showToast('已导入随笔: ' + parsed.title, 'green', '📝')
-              }
-            } else {
-              showToast('MD 文件缺少 frontmatter', 'warn')
-            }
-          } catch (err) {
-            showToast('MD 文件解析失败', 'warn')
-          }
-        }
-        reader.readAsText(file)
       }
     }
   }
   input.click()
-}
-
-function parseMdFrontmatter(content) {
-  if (!content.startsWith('---')) return null
-  const endIdx = content.indexOf('---', 3)
-  if (endIdx === -1) return null
-  const frontStr = content.substring(3, endIdx).trim()
-  const body = content.substring(endIdx + 3).trim()
-  const meta = {}
-  frontStr.split('\n').forEach(line => {
-    const colonIdx = line.indexOf(':')
-    if (colonIdx !== -1) {
-      const key = line.substring(0, colonIdx).trim()
-      let val = line.substring(colonIdx + 1).trim()
-      if (val.startsWith('[') && val.endsWith(']')) {
-        try { val = JSON.parse(val) } catch (e) { val = [] }
-      }
-      meta[key] = val
-    }
-  })
-  meta.content = body
-  return meta
 }
 
 const clearCountdown = ref(10)
@@ -927,18 +741,17 @@ function clearData() {
         if (!clearReady.value) return
         localStorage.clear()
         Object.assign(state, { 
-          hero: { name: '勇者', xp: 0, coin: 0, realMoney: 0, streak: 0, lastAdvDate: null, purchasedItems: [], purchaseHistory: [], bannerImg: null }, 
-          advTypes: [
-            { id: 'at1', emoji: '📚', name: '读书', xpMin: 30, xpMax: 40, pinned: true },
-            { id: 'at2', emoji: '🎬', name: '电影', xpMin: 5, xpMax: 8, pinned: true },
-            { id: 'at3', emoji: '🚶', name: '散步', xpMin: 3, xpMax: 5, pinned: true },
-            { id: 'at4', emoji: '🎸', name: '指弹', xpMin: 100, xpMax: 120, pinned: true }
-          ], 
-          adventures: [], 
-          essays: [], 
-          unlockedAchievements: [],
-          theme: 'auto'
-        })
+    hero: { name: '勇者', xp: 0, coin: 0, realMoney: 0, streak: 0, lastAdvDate: null, purchasedItems: [], purchaseHistory: [], bannerImg: null }, 
+    advTypes: [
+      { id: 'at1', emoji: '📚', name: '读书', xpMin: 30, xpMax: 40, pinned: true },
+      { id: 'at2', emoji: '🎬', name: '电影', xpMin: 5, xpMax: 8, pinned: true },
+      { id: 'at3', emoji: '🚶', name: '散步', xpMin: 3, xpMax: 5, pinned: true },
+      { id: 'at4', emoji: '🎸', name: '指弹', xpMin: 100, xpMax: 120, pinned: true }
+    ], 
+    adventures: [], 
+    unlockedAchievements: [],
+    theme: 'auto'
+  })
         saveWithToast()
         showToast('数据已清除', 'warn')
       }}
@@ -992,7 +805,6 @@ function clearData() {
       <div class="nav-tabs">
         <button class="nav-tab" :class="{ active: currentPage === 'character' }" @click="switchPage('character')">角色</button>
         <button class="nav-tab" :class="{ active: currentPage === 'adventure' }" @click="switchPage('adventure')">历险</button>
-        <button class="nav-tab" :class="{ active: currentPage === 'essays' }" @click="switchPage('essays')">随笔</button>
         <button class="nav-tab" :class="{ active: currentPage === 'vault' }" @click="switchPage('vault')">仓库</button>
         <button class="nav-tab" :class="{ active: currentPage === 'shop' }" @click="switchPage('shop')">商店</button>
         <button class="nav-tab" :class="{ active: currentPage === 'achievements' }" @click="switchPage('achievements')">成就</button>
@@ -1016,7 +828,6 @@ function clearData() {
     <div class="mob-menu-items">
       <button class="mob-menu-item" :class="{ active: currentPage === 'character' }" @click="switchPage('character'); mobileMenuOpen = false">角色</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'adventure' }" @click="switchPage('adventure'); mobileMenuOpen = false">历险</button>
-      <button class="mob-menu-item" :class="{ active: currentPage === 'essays' }" @click="switchPage('essays'); mobileMenuOpen = false">随笔</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'vault' }" @click="switchPage('vault'); mobileMenuOpen = false">仓库</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'shop' }" @click="switchPage('shop'); mobileMenuOpen = false">商店</button>
       <button class="mob-menu-item" :class="{ active: currentPage === 'achievements' }" @click="switchPage('achievements'); mobileMenuOpen = false">成就</button>
@@ -1202,52 +1013,7 @@ function clearData() {
     </div>
   </div>
 
-  <!-- Essays Page -->
-  <div class="page" :class="{ active: currentPage === 'essays' }">
-    <div class="wrap">
-      <div class="fb mb24"><div><div class="page-title">随笔</div><div class="page-sub">写下来，就永远在了</div></div><button class="btn btn-p" @click="newEssay">+ 新建随笔</button></div>
-      <div class="essay-layout">
-        <div>
-          <div class="essay-timeline">
-            <div v-if="!state.essays.length" class="empty" style="padding:20px 0"><div class="empty-icon">📝</div>还没有随笔</div>
-            <div v-for="e in state.essays" :key="e.id" class="etl-item" :class="{ active: currentEssay?.id === e.id }" @click="openEssay(e)">
-              <div class="etl-date">{{ fmtDate(e.date) }} {{ e.mood }}{{ !e.submitted ? ' ✏️' : '' }}</div>
-              <div class="etl-title">{{ e.title || '草稿…' }}</div>
-            </div>
-          </div>
-        </div>
-        <div>
-          <div v-if="!currentEssay" class="card" style="text-align:center;color:var(--t4);padding:60px 20px"><div style="font-size:32px;margin-bottom:10px">📖</div><div>选择一篇随笔，或新建一篇</div></div>
-          <div v-else-if="currentEssay.submitted" class="card cp">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div class="essay-view-title">{{ currentEssay.title || '无题' }}</div>
-              <button class="btn btn-g btn-sm" @click="exportSingleEssay(currentEssay)" style="flex-shrink:0">📥 导出</button>
-            </div>
-            <div class="essay-view-meta"><span>{{ currentEssay.mood }}</span><span>{{ fmtDate(currentEssay.date) }}</span><span>{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字</span></div>
-            <div class="md-body" v-html="marked.parse(currentEssay.content || '')"></div>
-          </div>
-          <div v-else class="card cp">
-            <input class="essay-title-inp" v-model="currentEssay.title" placeholder="标题…" maxlength="60" />
-            <div style="margin:12px 0 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:12px;color:var(--t3)">心情</span><div class="mood-row"><button v-for="m in MOODS" :key="m" class="mood-btn" :class="{ on: currentEssay.mood === m }" @click="currentEssay.mood = m">{{ m }}</button></div></div>
-            <div style="margin:12px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <span style="font-size:12px;color:var(--t3)">标签</span>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1">
-                <input v-model="essayTagInput" @keydown.enter="addEssayTag" placeholder="输入标签后按Enter" style="font-size:12px;padding:4px 8px;border:1px solid var(--bd);border-radius:4px;background:var(--sur);color:var(--t1);flex:1;min-width:100px" />
-                <div style="display:flex;gap:4px;flex-wrap:wrap">
-                  <span v-for="(tag, i) in currentEssay.tags" :key="i" class="essay-tag">
-                    {{ tag }}
-                    <button @click="removeEssayTag(i)" style="background:none;border:none;color:inherit;cursor:pointer;margin-left:4px;font-size:11px">✕</button>
-                  </span>
-                </div>
-              </div>
-            </div>
-            <TiptapEditor v-model="currentEssay.content" placeholder="支持 Markdown 语法…" />
-            <div class="fb" style="margin-top:10px"><span style="font-size:11px;color:var(--t4);font-family:monospace">{{ (currentEssay.content || '').replace(/\s/g, '').length }} 字 · 提交后不可修改</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" @click="deleteEssay">删除草稿</button><button class="btn btn-p btn-sm" @click="submitEssay">提交随笔</button></div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Achievements Page -->
   <div class="page" :class="{ active: currentPage === 'achievements' }">
@@ -1444,8 +1210,8 @@ function clearData() {
         </div>
         <div class="card cp">
           <div class="set-sec-title">数据</div>
-          <div class="set-row"><div><div class="set-label">导出备份</div><div class="set-desc">导出为 JSON / Markdown / ZIP</div></div><div style="display:flex;gap:6px"><button class="btn btn-g btn-sm" @click="exportJson">📄 JSON</button><button class="btn btn-g btn-sm" @click="exportMarkdown">📝 MD</button><button class="btn btn-g btn-sm" @click="exportZip">📦 ZIP</button></div></div>
-          <div class="set-row"><div><div class="set-label">导入数据</div><div class="set-desc">导入 JSON 文件或 Markdown 随笔</div></div><button class="btn btn-g btn-sm" @click="triggerImport">📥 导入</button></div>
+          <div class="set-row"><div><div class="set-label">导出备份</div><div class="set-desc">导出为 JSON / ZIP</div></div><div style="display:flex;gap:6px"><button class="btn btn-g btn-sm" @click="exportJson">📄 JSON</button><button class="btn btn-g btn-sm" @click="exportZip">📦 ZIP</button></div></div>
+          <div class="set-row"><div><div class="set-label">导入数据</div><div class="set-desc">导入 JSON 文件</div></div><button class="btn btn-g btn-sm" @click="triggerImport">📥 导入</button></div>
           <div class="set-row"><div><div class="set-label">清除所有数据</div><div class="set-desc" style="color:#c0392b">不可撤销</div></div><button class="btn btn-sm btn-danger" @click="clearData">永久清除</button></div>
         </div>
       </div>
