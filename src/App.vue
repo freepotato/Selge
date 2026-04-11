@@ -871,7 +871,6 @@ function clearData() {
           <div>
             <div class="xp-lv-inline">
               <span class="xp-lv-num">Lv.{{ currentLevel }}</span>
-              <span class="xp-lv-text">{{ levelTitle }}</span>
             </div>
           </div>
           <div style="display:flex;gap:32px;text-align:right;padding-left:8px">
